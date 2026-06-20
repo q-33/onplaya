@@ -61,14 +61,31 @@ async function logout() {
   await refreshSession()
 }
 
+// the current user's own camps (for picking vs creating)
+interface MyCamp { id: string, name: string, locations: { addressString: string | null }[] }
+const { data: myCamps, refresh: refreshMine } = await useFetch<MyCamp[]>('/api/camps/mine', {
+  immediate: false,
+  default: () => [],
+})
+watch(loggedIn, (v) => { if (v) refreshMine() }, { immediate: true })
+
 // drop pin
 const dropOpen = ref(false)
+const selectedCampId = ref<string>('') // '' = create new
 const campName = ref('')
 const dropError = ref('')
 const dropBusy = ref(false)
 const currentAddress = computed(() =>
   position.value ? formatAddress(latLngToAddress(position.value)) : null,
 )
+const creatingNew = computed(() => selectedCampId.value === '')
+
+async function openDrop() {
+  await refreshMine()
+  // default to the user's first camp if they have one, else "create new"
+  selectedCampId.value = myCamps.value?.[0]?.id ?? ''
+  dropOpen.value = true
+}
 
 async function dropPin() {
   if (!position.value || !currentAddress.value)
@@ -76,15 +93,19 @@ async function dropPin() {
   dropBusy.value = true
   dropError.value = ''
   try {
-    const camp: any = await $fetch('/api/camps', {
-      method: 'POST',
-      body: { name: campName.value, year: new Date().getFullYear() },
-    })
+    let campId = selectedCampId.value
+    if (creatingNew.value) {
+      const camp: any = await $fetch('/api/camps', {
+        method: 'POST',
+        body: { name: campName.value, year: new Date().getFullYear() },
+      })
+      campId = camp.id
+    }
     await $fetch('/api/locations', {
       method: 'POST',
-      body: { campId: camp.id, addressString: currentAddress.value },
+      body: { campId, addressString: currentAddress.value },
     })
-    await refreshCamps()
+    await Promise.all([refreshCamps(), refreshMine()])
     dropOpen.value = false
     campName.value = ''
   }
@@ -95,6 +116,12 @@ async function dropPin() {
     dropBusy.value = false
   }
 }
+
+// camp options for the picker select
+const campOptions = computed(() => [
+  ...(myCamps.value ?? []).map(c => ({ label: c.name, value: c.id })),
+  { label: '+ Create a new camp', value: '' },
+])
 </script>
 
 <template>
@@ -116,7 +143,7 @@ async function dropPin() {
       </div>
       <div class="flex items-center gap-2">
         <template v-if="loggedIn">
-          <UButton size="sm" color="primary" :disabled="!position" @click="dropOpen = true">
+          <UButton size="sm" color="primary" :disabled="!position" @click="openDrop">
             Drop my camp
           </UButton>
           <UButton size="sm" variant="soft" @click="logout">
@@ -154,10 +181,21 @@ async function dropPin() {
           <p class="text-sm">
             Location: <b>{{ currentAddress ?? '—' }}</b>
           </p>
-          <UInput v-model="campName" placeholder="Camp name" required class="w-full" />
+          <USelect
+            v-if="myCamps && myCamps.length"
+            v-model="selectedCampId"
+            :items="campOptions"
+            class="w-full"
+          />
+          <UInput
+            v-if="creatingNew"
+            v-model="campName"
+            placeholder="Camp name"
+            class="w-full"
+          />
           <p v-if="dropError" class="text-sm text-red-600">{{ dropError }}</p>
-          <UButton type="submit" block :loading="dropBusy" :disabled="!campName">
-            Drop pin
+          <UButton type="submit" block :loading="dropBusy" :disabled="creatingNew && !campName">
+            {{ creatingNew ? 'Create camp & drop pin' : 'Move my camp here' }}
           </UButton>
         </form>
       </template>
