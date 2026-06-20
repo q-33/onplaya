@@ -1,25 +1,71 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-/* Playa design tokens — warm dust palette, modern type. */
+/*
+  Theme matched to removemarian.org (sibling project): warm "dust" light theme,
+  burnt-orange/rust primary, muted-teal accent, Oswald + Inter + Roboto Mono.
+*/
 @theme static {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Oswald", sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
+
+  /* rust / burnt-orange primary (brand 500 ≈ hsl(22 80% 47%)) */
+  --color-rust-50: #fdf3ec;
+  --color-rust-100: #fbe3d2;
+  --color-rust-200: #f5c4a3;
+  --color-rust-300: #ee9f6e;
+  --color-rust-400: #e67e42;
+  --color-rust-500: #d96a1e;
+  --color-rust-600: #c25617;
+  --color-rust-700: #a04317;
+  --color-rust-800: #82381a;
+  --color-rust-900: #6b3018;
+  --color-rust-950: #3a160a;
 }
 
-:root {
-  --ui-radius: 0.75rem;
+/* warm-dust semantic tokens (light) — mirrors removemarian.org */
+:root,
+.light {
+  --ui-radius: 0.375rem;
+  --ui-bg: #ece4d2;
+  --ui-bg-muted: #e4dac6;
+  --ui-bg-elevated: #faf4e9;
+  --ui-bg-accented: #ddd0b8;
+  --ui-border: #cdc1ad;
+  --ui-border-muted: #d8cdb9;
+  --ui-border-accented: #c2b59c;
+  --ui-text-dimmed: #8a7f6d;
+  --ui-text-muted: #6a6052;
+  --ui-text-toned: #4f4738;
+  --ui-text: #2f2820;
+  --ui-text-highlighted: #1f1a14;
+  /* muted-teal accent (hsl(200 36% 44%)) for secondary flourishes */
+  --accent-teal: #487f99;
 }
 
-/* Subtle dust-grain backdrop on dark surfaces. */
+/* warm dark fallback (kept usable if toggled) */
+.dark {
+  --ui-bg: #211d17;
+  --ui-bg-muted: #2a251d;
+  --ui-bg-elevated: #2a251d;
+  --ui-border: #3a3328;
+  --accent-teal: #6aa3bd;
+}
+
 .playa-bg {
   background-color: var(--ui-bg);
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in oklab, var(--ui-primary) 14%, transparent), transparent),
-    radial-gradient(ellipse 60% 50% at 90% 110%, color-mix(in oklab, var(--ui-primary) 8%, transparent), transparent);
+    radial-gradient(ellipse 90% 50% at 50% -10%, color-mix(in oklab, var(--ui-primary) 16%, transparent), transparent),
+    radial-gradient(ellipse 70% 50% at 90% 110%, color-mix(in oklab, var(--accent-teal) 10%, transparent), transparent);
 }
 
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.text-accent-teal {
+  color: var(--accent-teal);
 }

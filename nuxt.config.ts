@@ -5,8 +5,8 @@ export default defineNuxtConfig({
   modules: ['@nuxt/ui', 'nuxt-auth-utils'],
   css: ['~/assets/css/main.css'],
   colorMode: {
-    preference: 'dark',
-    fallback: 'dark',
+    preference: 'light',
+    fallback: 'light',
   },
   app: {
     head: {
@@ -14,7 +14,7 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'description', content: 'Find your people on the playa. Mark and discover camp locations on the Black Rock City map.' },
-        { name: 'theme-color', content: '#1c1917' },
+        { name: 'theme-color', content: '#ece4d2' },
       ],
     },
   },

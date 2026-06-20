@@ -134,7 +134,7 @@ const campOptions = computed(() => [
 
     <!-- floating top bar -->
     <div class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-      <div class="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-stone-900/80 p-1 pl-3 text-white shadow-lg backdrop-blur-xl">
+      <div class="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-[#26211a]/85 p-1 pl-3 text-white shadow-lg backdrop-blur-xl">
         <NuxtLink to="/" class="mr-1 flex items-center gap-1.5">
           <UIcon name="i-lucide-flame" class="size-4 text-primary" />
           <span class="font-display text-sm font-bold">BurnerMap</span>
@@ -148,7 +148,7 @@ const campOptions = computed(() => [
           <UButton size="sm" color="primary" icon="i-lucide-map-pin" :disabled="!position" @click="openDrop">
             Drop my camp
           </UButton>
-          <UButton size="sm" color="neutral" variant="solid" class="bg-stone-900/80 text-white backdrop-blur-xl" icon="i-lucide-user" @click="logout">
+          <UButton size="sm" color="neutral" variant="solid" class="bg-[#26211a]/85 text-white backdrop-blur-xl" icon="i-lucide-user" @click="logout">
             <span class="hidden sm:inline">{{ user?.displayName || 'Log out' }}</span>
           </UButton>
         </template>
@@ -160,7 +160,7 @@ const campOptions = computed(() => [
 
     <!-- GPS readout pill (bottom center) -->
     <div class="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4">
-      <div class="pointer-events-auto flex items-center gap-2 rounded-full border border-white/10 bg-stone-900/80 px-4 py-2 text-sm text-white shadow-lg backdrop-blur-xl">
+      <div class="pointer-events-auto flex items-center gap-2 rounded-full border border-white/10 bg-[#26211a]/85 px-4 py-2 text-sm text-white shadow-lg backdrop-blur-xl">
         <UIcon :name="position ? 'i-lucide-navigation' : 'i-lucide-locate-fixed'" class="size-4" :class="position ? 'text-primary' : 'text-white/50'" />
         <span :class="position ? 'font-medium' : 'text-white/60'">
           {{ readout ?? 'Tap the ⌖ to find yourself on the playa' }}
