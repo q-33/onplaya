@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "powersync": {
+      "source": "powersync-ja/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/powersync/SKILL.md",
+      "computedHash": "6ec424a1dbd9218ef662b9bcbe2bce758703dd93a9be0fb97fef75c38805d743"
+    },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
