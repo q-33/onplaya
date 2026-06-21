@@ -20,6 +20,15 @@ export const campSchema = z.object({
   hometown: z.string().max(200).optional(),
 })
 
+export const artSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  year: z.number().int().gte(1986).lte(2100),
+  description: z.string().max(2000).optional(),
+  website: z.string().url().optional().or(z.literal('')),
+  contactEmail: z.string().email().optional().or(z.literal('')),
+  hometown: z.string().max(200).optional(),
+})
+
 // Events: a camp announces a planned event. starts/ends are playa wall-clock
 // strings (e.g. "2026-08-31T15:00") from a datetime-local input.
 export const eventSchema = z.object({

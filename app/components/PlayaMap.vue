@@ -9,16 +9,16 @@ import { centerCampPoint, cityGridGeoJson, manPoint } from '~~/lib/brc/cityGeoJs
 
 interface CampPin { name: string, lat: number, lng: number, address: string }
 
-const props = defineProps<{ camps: CampPin[], focus?: { lat: number, lng: number } | null }>()
+const props = defineProps<{ camps: CampPin[], artPins?: CampPin[], focus?: { lat: number, lng: number } | null }>()
 const emit = defineEmits<{ position: [{ lat: number, lng: number }] }>()
 
 const el = useTemplateRef<HTMLDivElement>('mapEl')
 let map: MlMap | undefined
 
-function campsGeoJson(): GeoJSON.FeatureCollection {
+function pinsGeoJson(pins: CampPin[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: props.camps.map(c => ({
+    features: pins.map(c => ({
       type: 'Feature',
       properties: { name: c.name, address: c.address },
       geometry: { type: 'Point', coordinates: [c.lng, c.lat] },
@@ -200,8 +200,32 @@ onMounted(async () => {
       layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-offset': [0, -1.1], 'text-anchor': 'bottom' },
       paint: { 'text-color': '#1c2733', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 },
     })
+    // art pins (violet) — drawn under camp pins
+    map.addSource('art', { type: 'geojson', data: pinsGeoJson(props.artPins ?? []) })
+    map.addLayer({
+      id: 'art',
+      type: 'circle',
+      source: 'art',
+      paint: { 'circle-radius': 6, 'circle-color': '#7c3aed', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
+    })
+    map.addLayer({
+      id: 'art-labels',
+      type: 'symbol',
+      source: 'art',
+      layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-offset': [0, 1.2], 'text-anchor': 'top' },
+      paint: { 'text-color': '#5b21b6', 'text-halo-color': '#fff', 'text-halo-width': 1.6 },
+    })
+    map.on('click', 'art', (e) => {
+      const f = e.features?.[0]
+      if (f && map) {
+        new maplibregl.Popup()
+          .setLngLat((f.geometry as any).coordinates)
+          .setHTML(`<b>${f.properties?.name}</b><br>${f.properties?.address ?? ''}`)
+          .addTo(map)
+      }
+    })
     // camp pins
-    map.addSource('camps', { type: 'geojson', data: campsGeoJson() })
+    map.addSource('camps', { type: 'geojson', data: pinsGeoJson(props.camps) })
     map.addLayer({
       id: 'camps',
       type: 'circle',
@@ -230,7 +254,13 @@ onMounted(async () => {
 // keep camp pins in sync
 watch(() => props.camps, () => {
   const src = map?.getSource('camps') as GeoJSONSource | undefined
-  src?.setData(campsGeoJson())
+  src?.setData(pinsGeoJson(props.camps))
+}, { deep: true })
+
+// keep art pins in sync
+watch(() => props.artPins, () => {
+  const src = map?.getSource('art') as GeoJSONSource | undefined
+  src?.setData(pinsGeoJson(props.artPins ?? []))
 }, { deep: true })
 
 // fly to a focused camp (from the list's "view on map")

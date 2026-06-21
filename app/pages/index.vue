@@ -22,15 +22,18 @@ const focus = computed(() => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null
 })
 
-// camps -> pins
-const { data: campsData, refresh: refreshCamps } = await useFetch('/api/camps')
-const pins = computed<CampPin[]>(() =>
-  (campsData.value ?? []).flatMap((c: any) =>
+// camps + art -> pins
+function toPins(items: any): CampPin[] {
+  return (items ?? []).flatMap((c: any) =>
     (c.locations ?? [])
       .filter((l: any) => l.gpsLatitude != null && l.gpsLongitude != null)
       .map((l: any) => ({ name: c.name, lat: l.gpsLatitude, lng: l.gpsLongitude, address: namedAddress(l.addressString) })),
-  ),
-)
+  )
+}
+const { data: campsData, refresh: refreshCamps } = await useFetch('/api/camps')
+const { data: artData, refresh: refreshArt } = await useFetch('/api/art')
+const pins = computed<CampPin[]>(() => toPins(campsData.value))
+const artPins = computed<CampPin[]>(() => toPins(artData.value))
 
 // live GPS readout
 const position = ref<{ lat: number, lng: number }>()
@@ -70,18 +73,18 @@ async function logout() {
   await refreshSession()
 }
 
-// the current user's own camps (for picking vs creating)
-interface MyCamp { id: string, name: string, locations: { addressString: string | null }[] }
-const { data: myCamps, refresh: refreshMine } = await useFetch<MyCamp[]>('/api/camps/mine', {
-  immediate: false,
-  default: () => [],
-})
-watch(loggedIn, (v) => { if (v) refreshMine() }, { immediate: true })
+// the current user's own camps + art (for picking vs creating)
+type DropKind = 'camp' | 'art'
+interface MyItem { id: string, name: string }
+const { data: myCamps, refresh: refreshMineCamps } = await useFetch<MyItem[]>('/api/camps/mine', { immediate: false, default: () => [] })
+const { data: myArt, refresh: refreshMineArt } = await useFetch<MyItem[]>('/api/art/mine', { immediate: false, default: () => [] })
+watch(loggedIn, (v) => { if (v) { refreshMineCamps(); refreshMineArt() } }, { immediate: true })
 
-// drop pin
+// drop pin (camp or art)
 const dropOpen = ref(false)
-const selectedCampId = ref<string>('') // '' = create new
-const campName = ref('')
+const dropKind = ref<DropKind>('camp')
+const selectedId = ref<string>('') // '' = create new
+const newName = ref('')
 const dropError = ref('')
 const dropBusy = ref(false)
 const currentAddress = computed(() =>
@@ -90,12 +93,18 @@ const currentAddress = computed(() =>
 const currentAddressNamed = computed(() =>
   position.value ? formatAddressNamed(latLngToAddress(position.value)) : null,
 )
-const creatingNew = computed(() => selectedCampId.value === '')
+const creatingNew = computed(() => selectedId.value === '')
+const myItems = computed<MyItem[]>(() => (dropKind.value === 'camp' ? myCamps.value : myArt.value) ?? [])
 
-async function openDrop() {
-  await refreshMine()
-  // default to the user's first camp if they have one, else "create new"
-  selectedCampId.value = myCamps.value?.[0]?.id ?? ''
+async function openDrop(kind: DropKind) {
+  dropKind.value = kind
+  if (kind === 'camp')
+    await refreshMineCamps()
+  else
+    await refreshMineArt()
+  selectedId.value = myItems.value?.[0]?.id ?? ''
+  newName.value = ''
+  dropError.value = ''
   dropOpen.value = true
 }
 
@@ -105,21 +114,21 @@ async function dropPin() {
   dropBusy.value = true
   dropError.value = ''
   try {
-    let campId = selectedCampId.value
+    let id = selectedId.value
     if (creatingNew.value) {
-      const camp: any = await $fetch('/api/camps', {
+      const created: any = await $fetch(dropKind.value === 'camp' ? '/api/camps' : '/api/art', {
         method: 'POST',
-        body: { name: campName.value, year: CITY_YEAR },
+        body: { name: newName.value, year: CITY_YEAR },
       })
-      campId = camp.id
+      id = created.id
     }
-    await $fetch('/api/locations', {
-      method: 'POST',
-      body: { campId, addressString: currentAddress.value },
-    })
-    await Promise.all([refreshCamps(), refreshMine()])
+    const locBody = dropKind.value === 'camp'
+      ? { campId: id, addressString: currentAddress.value }
+      : { artId: id, addressString: currentAddress.value }
+    await $fetch('/api/locations', { method: 'POST', body: locBody })
+    await Promise.all([refreshCamps(), refreshArt(), refreshMineCamps(), refreshMineArt()])
     dropOpen.value = false
-    campName.value = ''
+    newName.value = ''
   }
   catch (e: any) {
     dropError.value = e?.data?.statusMessage ?? 'Could not drop pin'
@@ -129,10 +138,9 @@ async function dropPin() {
   }
 }
 
-// camp options for the picker select
-const campOptions = computed(() => [
-  ...(myCamps.value ?? []).map(c => ({ label: c.name, value: c.id })),
-  { label: '+ Create a new camp', value: '' },
+const itemOptions = computed(() => [
+  ...myItems.value.map(c => ({ label: c.name, value: c.id })),
+  { label: `+ Create a new ${dropKind.value}`, value: '' },
 ])
 </script>
 
@@ -140,7 +148,7 @@ const campOptions = computed(() => [
   <div class="relative size-full overflow-hidden">
     <div class="absolute inset-0">
       <ClientOnly>
-        <PlayaMap :camps="pins" :focus="focus" class="size-full" @position="onPosition" />
+        <PlayaMap :camps="pins" :art-pins="artPins" :focus="focus" class="size-full" @position="onPosition" />
       </ClientOnly>
     </div>
 
@@ -152,14 +160,18 @@ const campOptions = computed(() => [
           <span class="font-display text-sm font-bold uppercase tracking-wide">BurnerMap</span>
         </NuxtLink>
         <UButton to="/camps" size="xs" color="neutral" variant="ghost" class="text-white/80 hover:text-white">Camps</UButton>
+        <UButton to="/art" size="xs" color="neutral" variant="ghost" class="text-white/80 hover:text-white">Art</UButton>
         <UButton to="/events" size="xs" color="neutral" variant="ghost" class="text-white/80 hover:text-white">Events</UButton>
         <UButton to="/about" size="xs" color="neutral" variant="ghost" class="text-white/80 hover:text-white">About</UButton>
       </div>
 
       <div class="pointer-events-auto flex items-center gap-2">
         <template v-if="loggedIn">
-          <UButton size="sm" color="primary" icon="i-lucide-map-pin" :disabled="!position" @click="openDrop">
-            Drop my camp
+          <UButton size="sm" color="primary" icon="i-lucide-map-pin" :disabled="!position" @click="openDrop('camp')">
+            Drop camp
+          </UButton>
+          <UButton size="sm" color="neutral" variant="solid" class="bg-[#7c3aed]/85 text-white backdrop-blur-xl" icon="i-lucide-palette" :disabled="!position" @click="openDrop('art')">
+            Drop art
           </UButton>
           <UButton size="sm" color="neutral" variant="solid" class="bg-[#26211a]/85 text-white backdrop-blur-xl" icon="i-lucide-user" @click="logout">
             <span class="hidden sm:inline">{{ user?.displayName || 'Log out' }}</span>
@@ -177,6 +189,7 @@ const campOptions = computed(() => [
       <ul class="space-y-0.5 text-white/80">
         <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#27a3df" />Camp blocks</li>
         <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#d6336c" />Camps</li>
+        <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#7c3aed" />Art</li>
         <li><span class="mr-1.5 inline-block size-2 rounded-full bg-white align-middle" />The Man · Center Camp</li>
         <li><span class="mr-1.5 inline-block h-0 w-3 border-t-2 border-dashed align-middle" style="border-color:#e1241a" />Trash fence</li>
       </ul>
@@ -211,27 +224,27 @@ const campOptions = computed(() => [
     </UModal>
 
     <!-- drop pin modal -->
-    <UModal v-model:open="dropOpen" title="Drop my camp here">
+    <UModal v-model:open="dropOpen" :title="`Drop my ${dropKind} here`">
       <template #body>
         <form class="space-y-3" @submit.prevent="dropPin">
           <p class="text-sm">
             Location: <b>{{ currentAddressNamed ?? '—' }}</b>
           </p>
           <USelect
-            v-if="myCamps && myCamps.length"
-            v-model="selectedCampId"
-            :items="campOptions"
+            v-if="myItems.length"
+            v-model="selectedId"
+            :items="itemOptions"
             class="w-full"
           />
           <UInput
             v-if="creatingNew"
-            v-model="campName"
-            placeholder="Camp name"
+            v-model="newName"
+            :placeholder="dropKind === 'camp' ? 'Camp name' : 'Artwork name'"
             class="w-full"
           />
           <p v-if="dropError" class="text-sm text-red-600">{{ dropError }}</p>
-          <UButton type="submit" block :loading="dropBusy" :disabled="creatingNew && !campName">
-            {{ creatingNew ? 'Create camp & drop pin' : 'Move my camp here' }}
+          <UButton type="submit" block :loading="dropBusy" :disabled="creatingNew && !newName">
+            {{ creatingNew ? `Create ${dropKind} & drop pin` : `Move my ${dropKind} here` }}
           </UButton>
         </form>
       </template>

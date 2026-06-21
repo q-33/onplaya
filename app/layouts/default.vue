@@ -4,6 +4,7 @@ const { loggedIn, user } = useUserSession()
 const links = [
   { label: 'Map', to: '/', icon: 'i-lucide-map' },
   { label: 'Camps', to: '/camps', icon: 'i-lucide-tent' },
+  { label: 'Art', to: '/art', icon: 'i-lucide-palette' },
   { label: 'Events', to: '/events', icon: 'i-lucide-calendar' },
   { label: 'About', to: '/about', icon: 'i-lucide-info' },
 ]
