@@ -161,24 +161,13 @@ export function cityGridGeoJson(): FeatureCollection {
     { time: 7.5, ringM: gRing, radiusM: PR },
   ]
 
-  // Center Camp — a concentric bullseye, as seen from the air: the hexagonal
-  // Café canopy at the centre, the open café plaza, the Center Camp Plaza camp
-  // streets, all bounded by Rod's Ring Road (the big outer circle).
+  // Center Camp: one open circular plaza ringed by Rod's Ring Road, with a small
+  // central island (the Café) — a clean roundabout, the way Google renders it.
   const cc = getCenterCampPoint()
   const ccc = { lat: cc[1], lng: cc[0] }
-  // open the plaza (mask the underlying blocks) out to Rod's Ring Road
   push('portal-fill', { type: 'Polygon', coordinates: [circleRing(ccc, CENTER_CAMP_R)] }, { name: 'Center Camp' })
   push('portal', { type: 'LineString', coordinates: circleRing(ccc, CENTER_CAMP_R) }, { name: 'Center Camp' }) // Rod's Ring Road
-  push('portal', { type: 'LineString', coordinates: circleRing(ccc, 56) }) // outer camp-street ring
-  push('portal', { type: 'LineString', coordinates: circleRing(ccc, 34) }) // café-plaza ring
-  // six radial spokes (Center Camp's internal streets) from the plaza ring out
-  // to Rod's Ring Road — vertices of concentric rings share the same bearings.
-  const spokeInner = circleRing(ccc, 34, 6)
-  const spokeOuter = circleRing(ccc, CENTER_CAMP_R, 6)
-  for (let s = 0; s < 6; s++)
-    push('portal', { type: 'LineString', coordinates: [spokeInner[s]!, spokeOuter[s]!] })
-  // hexagonal Café canopy at the centre
-  push('portal', { type: 'LineString', coordinates: circleRing(ccc, 13, 6) }, { name: 'Café' })
+  push('portal', { type: 'LineString', coordinates: circleRing(ccc, 14) }, { name: 'Café' }) // central island
 
   for (const p of plazas) {
     const c = radialPoint(p.time, p.ringM)
@@ -242,7 +231,7 @@ export const CIVIC_LANDMARKS: CivicLandmark[] = [
   { name: 'Law Enforcement', category: 'safety', at: { time: 5.08, street: 'Esplanade' }, note: 'Law enforcement substation · by Rampart at 5:15 & Esplanade' },
   { name: 'GPE', category: 'safety', at: { time: 5.75, street: 'E' }, note: 'Gate, Perimeter & Exodus (The Black Hole) · also runs Gate Road outposts (approx.)' },
   // Services (teal)
-  { name: 'Center Camp', category: 'services', at: { time: 6.25, street: 'B' }, note: 'Center Camp Plaza · Arctica ice (main)' },
+  { name: 'Ice · main', category: 'services', at: { time: 6.25, street: 'B' }, note: 'Arctica ice (main) · Center Camp Plaza' },
   { name: 'Playa Info', category: 'services', at: { time: 5.75, street: 'Esplanade' }, note: 'Info · Lost & Found · Placement HQ · BMIR 94.5 · V-Spot volunteers' },
   { name: 'ARTery', category: 'services', at: { time: 6.25, street: 'Esplanade' }, note: 'Art HQ · registration, lighting & fire-safety sign-off' },
   { name: 'Media Mecca', category: 'services', at: { time: 6.36, street: 'Esplanade' }, note: 'Press & media HQ · next to the ARTery' },
