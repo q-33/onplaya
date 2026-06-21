@@ -1,7 +1,7 @@
 // Parametric Black Rock City geocoder — address <-> lat/lng as pure math, no
-// shipped per-year GeoJSON, works fully offline. Constants were fitted from the
-// 2023 city block geometry (mean error ~35 m vs block centroids) and can be
-// swapped per year as Burning Man publishes the survey.
+// shipped per-year GeoJSON, works fully offline. Constants come from Burning
+// Man's OFFICIAL 2026 city data (golden spike, "4:30 axis = true N/S", and the
+// published street radii) and can be swapped per year as the survey updates.
 //
 // BRC is a polar city: the Man at the center, concentric lettered streets at
 // increasing radii, and a clock bearing (1 hour = 30 deg) for the angle.
@@ -19,18 +19,15 @@ export interface BrcAddress {
 }
 
 // --- The Golden Spike: the city's calibration point --------------------------
-// Each year the Bureau of Land Management survey crew drives a "golden spike"
-// into the playa at the exact center of Black Rock City — the base of the Man.
-// Every address in this file is computed relative to it, so this ONE coordinate
-// re-snaps the entire city (geocoding AND the drawn map) when updated.
+// Each year the DPW survey crew drives a "golden spike" into the playa at the
+// exact center of Black Rock City — the base of the Man. Every address here is
+// computed relative to it, so this ONE coordinate re-snaps the entire city
+// (geocoding AND the drawn map).
 //
-// 2026's spike has not been surveyed/published yet. `GOLDEN_SPIKE` is the
-// standing reference (the 2023-fitted Man position). The moment Burning Man
-// publishes the real 2026 coordinate, set GOLDEN_SPIKE_2026 below to it — that
-// single line re-aligns the whole map. Nothing else needs to change.
-// Optional compile-time pin for the 2026 spike. Leave null to use the runtime
-// override (NUXT_PUBLIC_GOLDEN_SPIKE env) or, failing that, the fallback estimate.
-export const GOLDEN_SPIKE_2026: LatLng | null = null
+// Set to the OFFICIAL 2026 golden spike from Burning Man's published city data
+// (innovate.burningman.org / 2026 BRC Measurements, 2.25.2026). A runtime env
+// override (NUXT_PUBLIC_GOLDEN_SPIKE) still takes precedence if set.
+export const GOLDEN_SPIKE_2026: LatLng | null = { lat: 40.783242, lng: -119.207871 }
 const FALLBACK_CENTER: LatLng = { lat: 40.786394, lng: -119.203492 }
 
 // The active city center (the golden spike). Exported as a `let` so a runtime
@@ -76,27 +73,31 @@ export function parseLatLng(s: string | null | undefined): LatLng | null {
 }
 
 // bearing(deg, clockwise from north) = BEARING_INTERCEPT + BEARING_PER_HOUR * time
-const BEARING_INTERCEPT = 40.253
-const BEARING_PER_HOUR = 29.98
+// From the official 2026 measurements: "True North/South follows the 4:30 axis",
+// i.e. 4:30 points due south (180°) → intercept = 180 - 30*4.5 = 45. Verified:
+// this puts Greeters (6:00) at bearing 225° and 6,705 ft from the Man, both
+// matching the published 2026 Greeters coordinate exactly.
+const BEARING_INTERCEPT = 45.0
+const BEARING_PER_HOUR = 30.0
 
-// Fitted centroid radius (metres) per street, innermost -> outermost. These are
-// the real, to-scale distances from the Man — the single source of truth for
-// both geocoding (address <-> GPS) and drawing the city. They must NOT be
-// stylised/compressed: doing so makes camp pins disagree with the device's real
-// GPS dot and misreports the street by 1-2 rings in the inner city.
+// Official 2026 street-center radii (metres) from the Man, innermost -> outermost,
+// derived from the 2026 BRC Measurements (Esplanade 2,500 ft; K 11,510 ft dia.;
+// stated block depths). Reproduces the doc's own checkpoints (Bradbury/B at
+// 3,215 ft, Gibson/G at 4,825 ft). Single source of truth for geocoding AND the
+// drawn city — never stylise/compress these.
 export const STREET_RADII: Record<string, number> = {
-  Esplanade: 792.2,
-  A: 880.9,
-  B: 980.4,
-  C: 1068.4,
-  D: 1156.4,
-  E: 1259.6,
-  F: 1382.9,
-  G: 1486.4,
-  H: 1574.8,
-  I: 1655.5,
-  J: 1721.0,
-  K: 1778.9,
+  Esplanade: 762.0, // 2,500 ft
+  A: 894.6, // 2,935 ft
+  B: 979.9, // 3,215 ft (Bradbury plaza ring — matches doc)
+  C: 1065.3, // 3,495 ft
+  D: 1150.6, // 3,775 ft
+  E: 1237.5, // 4,060 ft
+  F: 1385.3, // 4,545 ft
+  G: 1470.7, // 4,825 ft (Gibson plaza ring — matches doc)
+  H: 1556.0, // 5,105 ft
+  I: 1641.4, // 5,385 ft
+  J: 1696.2, // 5,565 ft
+  K: 1754.1, // 5,755 ft (11,510 ft diameter)
 }
 
 // city occupies roughly the 2:00–10:00 arc

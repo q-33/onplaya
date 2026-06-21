@@ -49,8 +49,8 @@ onMounted(async () => {
     center: [(man[0] + centerCamp[0]) / 2, (man[1] + centerCamp[1]) / 2],
     zoom: 13.65,
     // Orient like the official BRC plan: 12:00 (the opening) up, 6:00 down.
-    // The city's 12:00 axis sits at compass bearing ~40°.
-    bearing: 40,
+    // The city's 12:00 axis sits at compass bearing 45° (4:30 axis = true N/S).
+    bearing: 45,
     // Lock the orientation so pan/zoom can't rotate it off the plan layout.
     dragRotate: false,
     pitchWithRotate: false,
@@ -175,7 +175,7 @@ onMounted(async () => {
         'text-allow-overlap': true,
         'text-ignore-placement': true,
         'text-rotation-alignment': 'map',
-        'text-rotate': 295,
+        'text-rotate': 300,
         'text-anchor': 'left',
       },
       paint: { 'text-color': '#1c2733', 'text-halo-color': '#f6f2ea', 'text-halo-width': 1.4 },

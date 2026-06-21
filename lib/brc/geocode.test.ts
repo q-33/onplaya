@@ -118,6 +118,7 @@ describe('golden spike calibration', () => {
   })
 
   it('re-anchors the whole city to a new center', () => {
+    const original = getCityCenter()
     const before = addressToLatLng({ time: 6, street: 'E' })!
     const newCenter = { lat: 41, lng: -119 }
     calibrateCityCenter(newCenter)
@@ -126,7 +127,7 @@ describe('golden spike calibration', () => {
     // the same address now resolves to a different absolute point
     const after = addressToLatLng({ time: 6, street: 'E' })!
     expect(Math.abs(after.lat - before.lat)).toBeGreaterThan(0.1)
-    // restore the default so other tests in this file are unaffected
-    calibrateCityCenter({ lat: 40.786394, lng: -119.203492 }, false)
+    // restore so other tests in this file are unaffected
+    calibrateCityCenter(original)
   })
 })

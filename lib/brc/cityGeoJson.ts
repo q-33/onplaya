@@ -38,15 +38,21 @@ function block(rIn: number, rOut: number, t0: number, t1: number): Feature {
 export function getCenterCampPoint(): [number, number] {
   return toLngLat(radialPoint(6, (STREET_RADII.A! + STREET_RADII.B!) / 2))
 }
-export const greetersPoint: [number, number] = [-119.220953, 40.773203]
-const TRASH_FENCE: [number, number][] = [
-  [-119.233566, 40.782814],
-  [-119.217274, 40.807028],
-  [-119.181931, 40.802722],
-  [-119.176407, 40.775857],
-  [-119.208301, 40.763558],
-  [-119.233566, 40.782814],
+// Official 2026 trash-fence pentagon (the 9.23-mile perimeter), stored as
+// offsets (Δlng, Δlat) from the golden spike so the fence tracks the city center
+// like the streets do. Source: 2026 BRC Measurements (5 surveyed fence points).
+const FENCE_OFFSETS: [number, number][] = [
+  [-0.029550, -0.003532], // P1
+  [-0.013538, 0.020281], // P2
+  [0.021201, 0.016048], // P3
+  [0.026634, -0.010359], // P4
+  [-0.004711, -0.022456], // P5
 ]
+function trashFence(): [number, number][] {
+  const ring = FENCE_OFFSETS.map(([dlng, dlat]) => [MAN.lng + dlng, MAN.lat + dlat] as [number, number])
+  ring.push(ring[0]!)
+  return ring
+}
 
 export function cityGridGeoJson(): FeatureCollection {
   const features: Feature[] = []
@@ -86,7 +92,7 @@ export function cityGridGeoJson(): FeatureCollection {
   }
 
   // 2. Trash fence (red dashed pentagon)
-  push('fence', { type: 'LineString', coordinates: TRASH_FENCE })
+  push('fence', { type: 'LineString', coordinates: trashFence() })
 
   // 3. Named-street labels (upper-left, as on the plan)
   for (const street of STREETS) {
@@ -174,9 +180,12 @@ export const CIVIC_LANDMARKS: CivicLandmark[] = [
   { name: 'Ice · 9:00', category: 'services', at: { time: 9, street: 'G' }, note: 'Arctica ice sales' },
   { name: 'DPW Depot', category: 'services', at: { time: 5.5, radiusM: K_M + 205 }, note: 'Dept. of Public Works · just past Kilgore (K)' },
   // Transport / entry (amber)
-  { name: 'Airport (88NV)', category: 'transport', at: { time: 5, radiusM: 2500 }, note: 'BRC Municipal Airport · outside the fence on 5:00' },
-  { name: 'Greeters', category: 'transport', at: { time: 6, radiusM: 1990 }, note: 'Welcome station + printed city map (entry)' },
+  { name: 'Airport (88NV)', category: 'transport', at: { lng: -119.2107394, lat: 40.7618388 }, note: 'BRC Municipal Airport · off 5:00, outside the fence' },
+  { name: 'Greeters', category: 'transport', at: { time: 6, radiusM: 2044 }, note: 'Welcome station + printed city map · 6,705 ft out on 6:00' },
   { name: 'Fuel · Hell Station', category: 'transport', at: { time: 9.5, radiusM: K_M + 110 }, note: 'Participant vehicle fueling · past the outer street' },
+  // Sacred (purple). 2026 Temple geometry publishes early July; this is the
+  // 12:00 deep-playa axis at an approximate distance until then.
+  { name: 'Temple (approx.)', category: 'sacred', at: { time: 12, radiusM: 920 }, note: 'Deep playa, 12:00 axis · exact 2026 location pending official GIS' },
 ]
 
 export function civicLandmarksGeoJson(): FeatureCollection {

@@ -21,10 +21,10 @@ describe('cityGridGeoJson', () => {
     expect(coords.every(([a, b]) => Number.isFinite(a) && Number.isFinite(b))).toBe(true)
   })
 
-  it('centers near the Man', () => {
+  it('centers on the official 2026 golden spike', () => {
     const man = getManPoint()
-    expect(man[0]).toBeCloseTo(-119.2035, 2)
-    expect(man[1]).toBeCloseTo(40.7864, 2)
+    expect(man[0]).toBeCloseTo(-119.207871, 3)
+    expect(man[1]).toBeCloseTo(40.783242, 3)
   })
 })
 
