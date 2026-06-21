@@ -69,6 +69,17 @@ export function cityGridGeoJson(): FeatureCollection {
     }
   }
 
+  // 1b. Light-blue promenade wedges along the major avenues (decorative, as on plan)
+  for (const t of [3, 4.5, 6, 7.5, 9]) {
+    const ring: [number, number][] = []
+    ring.push(toLngLat(radialPoint(t - 0.08, espRadius)))
+    for (let s = 0; s <= 6; s++)
+      ring.push(toLngLat(radialPoint(t - 0.55 + (1.1 * s) / 6, kRadius)))
+    ring.push(toLngLat(radialPoint(t + 0.08, espRadius)))
+    ring.push(ring[0]!)
+    push('wedge', { type: 'Polygon', coordinates: [ring] })
+  }
+
   // 2. Trash fence (red dashed pentagon)
   push('fence', { type: 'LineString', coordinates: TRASH_FENCE })
 

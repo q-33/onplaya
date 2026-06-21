@@ -41,8 +41,9 @@ onMounted(async () => {
       sources: {},
       layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#f6f2ea' } }],
     },
-    center: manPoint,
-    zoom: 13.4,
+    // frame on a point between the Man and Center Camp so the city fills the view
+    center: [(manPoint[0] + centerCampPoint[0]) / 2, (manPoint[1] + centerCampPoint[1]) / 2],
+    zoom: 13.65,
     // Orient like the official BRC plan: 12:00 (the opening) up, 6:00 down.
     // The city's 12:00 axis sits at compass bearing ~40°.
     bearing: 40,
@@ -74,14 +75,22 @@ onMounted(async () => {
       type: 'fill',
       source: 'grid',
       filter: ['==', ['get', 'kind'], 'block'],
-      paint: { 'fill-color': '#27a3df', 'fill-opacity': 0.9 },
+      paint: { 'fill-color': '#5aa9d8', 'fill-opacity': 0.62 },
     })
     map.addLayer({
       id: 'blocks-outline',
       type: 'line',
       source: 'grid',
       filter: ['==', ['get', 'kind'], 'block'],
-      paint: { 'line-color': '#1c2733', 'line-width': 0.5 },
+      paint: { 'line-color': '#42627c', 'line-width': 0.5 },
+    })
+    // light-blue promenade wedges along the major avenues
+    map.addLayer({
+      id: 'wedges',
+      type: 'fill',
+      source: 'grid',
+      filter: ['==', ['get', 'kind'], 'wedge'],
+      paint: { 'fill-color': '#dff0fa', 'fill-opacity': 0.5 },
     })
     // trash fence (red dashed pentagon)
     map.addLayer({
@@ -150,10 +159,14 @@ onMounted(async () => {
       minzoom: 12.8,
       layout: {
         'text-field': ['get', 'name'],
-        'text-size': 11,
-        'text-allow-overlap': false,
+        'text-size': 9.5,
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+        'text-rotation-alignment': 'map',
+        'text-rotate': 295,
+        'text-anchor': 'left',
       },
-      paint: { 'text-color': '#1c2733', 'text-halo-color': '#f6f2ea', 'text-halo-width': 1.6 },
+      paint: { 'text-color': '#1c2733', 'text-halo-color': '#f6f2ea', 'text-halo-width': 1.4 },
     })
     // landmarks: the Man + Center Camp
     map.addSource('landmarks', {
