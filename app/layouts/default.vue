@@ -7,6 +7,7 @@ const links = computed(() => [
   { label: 'Art', to: '/art', icon: 'i-lucide-palette' },
   { label: 'Events', to: '/events', icon: 'i-lucide-calendar' },
   { label: 'Gate', to: '/gate', icon: 'i-lucide-traffic-cone' },
+  { label: 'Live', to: '/live', icon: 'i-lucide-radio' },
   { label: 'Guide', to: '/guide', icon: 'i-lucide-compass' },
   { label: 'About', to: '/about', icon: 'i-lucide-info' },
   ...((user.value as any)?.role === 'admin' ? [{ label: 'Admin', to: '/admin', icon: 'i-lucide-shield' }] : []),

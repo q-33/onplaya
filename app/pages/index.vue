@@ -2,6 +2,7 @@
 import type { GateStatus } from '~~/lib/gate'
 import { CITY_YEAR, describeLatLng, formatAddress, formatAddressNamed, latLngToAddress, parseAddress } from '~~/lib/brc/geocode'
 import { gateColor } from '~~/lib/gate'
+import { dustRisk, wmo } from '~~/lib/weather'
 
 function namedAddress(s: string | null | undefined): string {
   if (!s)
@@ -40,6 +41,10 @@ const artPins = computed<CampPin[]>(() => toPins(artData.value))
 // live Gate Road condition → colour the gate road + a status dot
 const { data: gateData } = await useFetch<{ inbound: { status: GateStatus } | null }>('/api/gate')
 const gateRoadColor = computed(() => gateData.value?.inbound ? gateColor(gateData.value.inbound.status) : undefined)
+
+// live weather → a compact pill (temp + gusts + dust) linking to /live
+const { data: weatherData } = await useFetch<{ current: { temperature_2m: number, weather_code: number, wind_gusts_10m: number } | null }>('/api/weather')
+const wx = computed(() => weatherData.value?.current ?? null)
 
 // live GPS readout
 const position = ref<{ lat: number, lng: number }>()
@@ -216,6 +221,18 @@ const itemOptions = computed(() => [
         <li><span class="mr-1.5 inline-block h-0 w-3 border-t-2 border-dashed align-middle" style="border-color:#e1241a" />Trash fence</li>
       </ul>
     </div>
+
+    <!-- weather pill (top-left, below the bar) -->
+    <NuxtLink
+      v-if="wx"
+      to="/live"
+      class="pointer-events-auto absolute left-3 top-16 flex items-center gap-2 rounded-full border border-white/10 bg-[#26211a]/85 px-3 py-1.5 text-sm text-white shadow-lg backdrop-blur-xl"
+    >
+      <UIcon :name="wmo(wx.weather_code).icon" class="size-4 text-primary" />
+      <span class="font-medium">{{ Math.round(wx.temperature_2m) }}°</span>
+      <span class="text-white/60">{{ Math.round(wx.wind_gusts_10m) }} mph</span>
+      <span class="size-2 rounded-full" :style="{ background: dustRisk(wx.wind_gusts_10m).color }" />
+    </NuxtLink>
 
     <!-- compass rose (map orientation is locked to bearing 45°) -->
     <div class="pointer-events-none absolute bottom-20 right-4 sm:bottom-6">
