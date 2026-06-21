@@ -116,7 +116,15 @@ onMounted(async () => {
       filter: ['==', ['get', 'kind'], 'gate-road'],
       paint: { 'line-color': '#1c2733', 'line-width': 1.6 },
     })
-    // portals: Center Camp / Rod's Ring Road + the 3:00, 9:00, 4:30 & 7:30 plazas
+    // portals: open plaza circles. The fill-mask erases the blocks/grid/avenues
+    // underneath so the circles read as clear open plazas (no lines through them).
+    map.addLayer({
+      id: 'portal-mask',
+      type: 'fill',
+      source: 'grid',
+      filter: ['==', ['get', 'kind'], 'portal-fill'],
+      paint: { 'fill-color': '#f6f2ea' },
+    })
     map.addLayer({
       id: 'portals',
       type: 'line',

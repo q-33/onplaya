@@ -109,7 +109,10 @@ export function cityGridGeoJson(): FeatureCollection {
     { name: '7:30 Plaza', center: toLngLat(radialPoint(7.5, 1486)), radiusM: 78 },
   ]
   for (const p of portals) {
-    push('portal', { type: 'LineString', coordinates: circleRing({ lat: p.center[1], lng: p.center[0] }, p.radiusM) }, { name: p.name })
+    const ring = circleRing({ lat: p.center[1], lng: p.center[0] }, p.radiusM)
+    // a filled circle that masks the blocks/grid underneath → an open plaza
+    push('portal-fill', { type: 'Polygon', coordinates: [ring] }, { name: p.name })
+    push('portal', { type: 'LineString', coordinates: ring }, { name: p.name })
     if (p.name !== 'Center Camp')
       push('portal-label', { type: 'Point', coordinates: p.center }, { name: p.name })
   }
