@@ -31,8 +31,9 @@ function block(rIn: number, rOut: number, t0: number, t1: number): Feature {
   return { type: 'Feature', properties: { kind: 'block' }, geometry: { type: 'Polygon', coordinates: [ring] } }
 }
 
-// Landmarks (real survey coordinates, [lng, lat]).
-export const centerCampPoint: [number, number] = [-119.21122602690583, 40.78052685763084]
+// Center Camp sits exactly on the 6:00 axis (the gate road), ~923 m from the Man —
+// matching the plan. (The raw GPS fix is ~5° off the geocoder's 6:00 radial.)
+export const centerCampPoint: [number, number] = toLngLat(radialPoint(6, 923))
 export const greetersPoint: [number, number] = [-119.220953, 40.773203]
 const TRASH_FENCE: [number, number][] = [
   [-119.233566, 40.782814],
