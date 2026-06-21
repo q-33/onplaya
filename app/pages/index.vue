@@ -47,7 +47,7 @@ const { data: weatherData } = await useFetch<{ current: { temperature_2m: number
 const wx = computed(() => weatherData.value?.current ?? null)
 
 // map layer visibility (the legend doubles as the toggle control)
-const layers = reactive({ camps: true, art: true, services: true, toilets: true })
+const layers = reactive({ camps: true, art: true, toilets: true, medical: true, safety: true, services: true, transport: true })
 const panelOpen = ref(true)
 
 // live GPS readout
@@ -227,16 +227,23 @@ const itemOptions = computed(() => [
           <span class="inline-block size-2 rounded-full" style="background:#3f6212" />Porta-potties
           <UIcon :name="layers.toilets ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
         </button>
-        <button type="button" class="flex w-full items-center gap-1.5 border-t border-white/10 pt-1.5 font-medium" :class="!layers.services && 'opacity-40'" @click="layers.services = !layers.services">
-          Services
+        <p class="border-t border-white/10 pt-1.5 font-medium text-white/45">Services</p>
+        <button type="button" class="flex w-full items-center gap-1.5" :class="!layers.medical && 'opacity-40'" @click="layers.medical = !layers.medical">
+          <span class="inline-block size-2 rounded-full" style="background:#dc2626" />Medical
+          <UIcon :name="layers.medical ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
+        </button>
+        <button type="button" class="flex w-full items-center gap-1.5" :class="!layers.safety && 'opacity-40'" @click="layers.safety = !layers.safety">
+          <span class="inline-block size-2 rounded-full" style="background:#2563eb" />Rangers · safety
+          <UIcon :name="layers.safety ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
+        </button>
+        <button type="button" class="flex w-full items-center gap-1.5" :class="!layers.services && 'opacity-40'" @click="layers.services = !layers.services">
+          <span class="inline-block size-2 rounded-full" style="background:#0e7490" />Ice · info · DPW
           <UIcon :name="layers.services ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
         </button>
-        <ul class="space-y-0.5 pl-0.5 text-white/70" :class="!layers.services && 'opacity-40'">
-          <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#dc2626" />Medical</li>
-          <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#2563eb" />Rangers · safety</li>
-          <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#0e7490" />Ice · info · DPW</li>
-          <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#d97706" />Airport · gate · fuel</li>
-        </ul>
+        <button type="button" class="flex w-full items-center gap-1.5" :class="!layers.transport && 'opacity-40'" @click="layers.transport = !layers.transport">
+          <span class="inline-block size-2 rounded-full" style="background:#d97706" />Airport · gate · fuel
+          <UIcon :name="layers.transport ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
+        </button>
         <ul class="space-y-0.5 border-t border-white/10 pt-1.5 text-white/50">
           <li><span class="mr-1.5 inline-block size-2 rounded-full align-middle" style="background:#27a3df" />Camp blocks</li>
           <li><span class="mr-1.5 inline-block size-2 rounded-full bg-white align-middle" />The Man · Center Camp</li>

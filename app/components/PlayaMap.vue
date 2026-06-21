@@ -11,22 +11,30 @@ interface CampPin { name: string, lat: number, lng: number, address: string }
 
 const props = defineProps<{ camps: CampPin[], artPins?: CampPin[], focus?: { lat: number, lng: number } | null, gateColor?: string, layers?: Record<string, boolean> }>()
 
-// Toggleable layer groups → their MapLibre layer ids.
-const LAYER_GROUPS: Record<string, string[]> = {
+// Simple on/off layer groups → their MapLibre layer ids.
+const VISIBILITY_GROUPS: Record<string, string[]> = {
   camps: ['camps', 'camp-labels'],
   art: ['art', 'art-labels'],
-  services: ['civic-dots', 'civic-labels'],
   toilets: ['toilets'],
 }
+// Civic markers are one layer coloured by category; we toggle categories with a
+// filter. The Temple (sacred) is a landmark and stays visible regardless.
+const CIVIC_CATEGORIES = ['medical', 'safety', 'services', 'transport']
 function applyLayerVisibility() {
   if (!map)
     return
-  for (const [key, ids] of Object.entries(LAYER_GROUPS)) {
+  for (const [key, ids] of Object.entries(VISIBILITY_GROUPS)) {
     const visible = props.layers?.[key] !== false
     for (const id of ids) {
       if (map.getLayer(id))
         map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none')
     }
+  }
+  const cats = CIVIC_CATEGORIES.filter(c => props.layers?.[c] !== false)
+  const filter = ['any', ['==', ['get', 'category'], 'sacred'], ['in', ['get', 'category'], ['literal', cats]]] as any
+  for (const id of ['civic-dots', 'civic-labels']) {
+    if (map.getLayer(id))
+      map.setFilter(id, filter)
   }
 }
 const emit = defineEmits<{ position: [{ lat: number, lng: number, accuracy?: number }] }>()
