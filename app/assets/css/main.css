@@ -44,12 +44,22 @@
   --accent-teal: #487f99;
 }
 
-/* warm dark fallback (kept usable if toggled) */
+/* warm-dust dark theme — light text on a warm-dark ground. The full token set
+   is overridden so text/borders don't inherit the light theme's dark values
+   (which made everything unreadable in dark mode). */
 .dark {
-  --ui-bg: #211d17;
-  --ui-bg-muted: #2a251d;
-  --ui-bg-elevated: #2a251d;
-  --ui-border: #3a3328;
+  --ui-bg: #1c1812;
+  --ui-bg-muted: #252019;
+  --ui-bg-elevated: #2c2620;
+  --ui-bg-accented: #342d23;
+  --ui-border: #3c3529;
+  --ui-border-muted: #2e2820;
+  --ui-border-accented: #4d4536;
+  --ui-text-dimmed: #897e6c;
+  --ui-text-muted: #aa9f8c;
+  --ui-text-toned: #cdc3b2;
+  --ui-text: #eae2d4;
+  --ui-text-highlighted: #f8f3ea;
   --accent-teal: #6aa3bd;
 }
 
