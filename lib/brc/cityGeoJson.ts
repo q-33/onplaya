@@ -221,13 +221,26 @@ export function cityGridGeoJson(): FeatureCollection {
     { time: 7.5, ringM: gRing, radiusM: PR },
   ]
 
-  // Center Camp: one open circular plaza ringed by Rod's Ring Road, with a small
-  // central island (the Café) — a clean roundabout, the way Google renders it.
+  // Center Camp: an open circular plaza ringed by Rod's Ring Road, with the
+  // keyhole "neck" — an arch protruding toward the Man at 6:00 (the official plan's
+  // upward bump) that the 6:00 promenade enters through.
   const cc = getCenterCampPoint()
   const ccc = { lat: cc[1], lng: cc[0] }
   push('portal-fill', { type: 'Polygon', coordinates: [circleRing(ccc, CENTER_CAMP_R)] }, { name: 'Center Camp' })
   push('portal', { type: 'LineString', coordinates: circleRing(ccc, CENTER_CAMP_R) }, { name: 'Center Camp' }) // Rod's Ring Road
-  push('portal', { type: 'LineString', coordinates: circleRing(ccc, 14) }, { name: 'Café' }) // central island
+  // The upward keyhole arch above the plaza (protrudes toward the Man).
+  const archBaseR = CANOPY_M - CENTER_CAMP_R // the plaza's Man-side edge
+  const archApexR = STREET_RADII.Esplanade! // a shallow dome reaching the Esplanade
+  const archHalf = 0.18 // half-width in clock-hours
+  const archSteps = 14
+  const arch: [number, number][] = []
+  for (let s = 0; s <= archSteps; s++) {
+    const f = s / archSteps
+    const t = 6 - archHalf + 2 * archHalf * f
+    const r = archBaseR - (archBaseR - archApexR) * Math.sin(Math.PI * f)
+    arch.push(toLngLat(radialPoint(t, r)))
+  }
+  push('portal', { type: 'LineString', coordinates: arch }, { name: 'Center Camp' })
 
   for (const p of plazas) {
     const c = radialPoint(p.time, p.ringM)
@@ -285,7 +298,6 @@ export const CIVIC_LANDMARKS: CivicLandmark[] = [
   { name: 'Rampart Hospital', category: 'medical', at: { time: 5.25, street: 'Esplanade' }, note: 'Main field hospital · ESD station' },
   { name: 'First Aid · 3:00', category: 'medical', at: { time: 3, street: 'C' }, note: 'Medical + Ranger Outpost (Berlin)' },
   { name: 'First Aid · 9:00', category: 'medical', at: { time: 9, street: 'C' }, note: 'Medical + Ranger Outpost (Tokyo)' },
-  { name: 'The Haven', category: 'medical', at: { time: 6.5, radiusM: (STREET_RADII.Esplanade! + STREET_RADII.A!) / 2 }, note: 'Sanctuary — free emotional & psychedelic peer support (The Haven by Zendo)' },
   // Safety (blue)
   { name: 'Ranger HQ', category: 'safety', at: { time: 6.5, street: 'Esplanade' }, note: 'Black Rock Rangers headquarters' },
   { name: 'Law Enforcement', category: 'safety', at: { time: 5.08, street: 'Esplanade' }, note: 'Law enforcement substation · by Rampart at 5:15 & Esplanade' },

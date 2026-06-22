@@ -3,7 +3,6 @@ const { loggedIn, user } = useUserSession()
 const { isAdmin, unreadMessages } = useMe()
 
 const links = computed(() => [
-  { label: 'Map', to: '/', icon: 'i-lucide-map' },
   { label: 'Camps', to: '/camps', icon: 'i-lucide-tent' },
   { label: 'Art', to: '/art', icon: 'i-lucide-palette' },
   { label: 'Events', to: '/events', icon: 'i-lucide-calendar' },
@@ -30,6 +29,9 @@ async function logout() {
           </span>
           <span class="font-display text-lg font-bold uppercase tracking-wide">Burner<span class="text-primary">Map</span></span>
         </NuxtLink>
+
+        <!-- always-visible link back to the map -->
+        <UButton to="/" icon="i-lucide-map" size="sm" color="neutral" variant="soft" class="shrink-0">Map</UButton>
 
         <nav class="hidden items-center gap-1 sm:flex">
           <UButton

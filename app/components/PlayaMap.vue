@@ -330,13 +330,13 @@ onMounted(async () => {
       id: 'landmark-dots',
       type: 'circle',
       source: 'landmarks',
-      paint: { 'circle-radius': 4, 'circle-color': '#1c2733', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 3.5, 15, 5, 18, 10], 'circle-color': '#1c2733', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 },
     })
     map.addLayer({
       id: 'landmark-labels',
       type: 'symbol',
       source: 'landmarks',
-      layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-offset': [0, -1.1], 'text-anchor': 'bottom' },
+      layout: { 'text-field': ['get', 'name'], 'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 15, 12, 18, 17], 'text-offset': [0, -1.1], 'text-anchor': 'bottom' },
       paint: { 'text-color': '#1c2733', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 },
     })
     // porta-potties (approx., from 2025 GIS) — small utility markers under everything
@@ -346,7 +346,7 @@ onMounted(async () => {
       type: 'circle',
       source: 'toilets',
       minzoom: 13,
-      paint: { 'circle-radius': 3, 'circle-color': '#3f6212', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 2.5, 16, 4.5, 18, 8], 'circle-color': '#3f6212', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 },
     })
     map.on('click', 'toilets', (e) => {
       if (map)
@@ -368,7 +368,7 @@ onMounted(async () => {
       type: 'circle',
       source: 'civic',
       paint: {
-        'circle-radius': 5,
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 15, 5.5, 18, 11],
         'circle-color': civicColor,
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 1.5,
@@ -381,7 +381,7 @@ onMounted(async () => {
       minzoom: 13,
       layout: {
         'text-field': ['get', 'name'],
-        'text-size': 10,
+        'text-size': ['interpolate', ['linear'], ['zoom'], 13, 9, 15, 11, 18, 15],
         'text-offset': [0, 0.9],
         'text-anchor': 'top',
         'text-max-width': 7,
@@ -404,13 +404,13 @@ onMounted(async () => {
       id: 'art',
       type: 'circle',
       source: 'art',
-      paint: { 'circle-radius': 6, 'circle-color': '#7c3aed', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4.5, 15, 6.5, 18, 13], 'circle-color': '#7c3aed', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
     })
     map.addLayer({
       id: 'art-labels',
       type: 'symbol',
       source: 'art',
-      layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-offset': [0, 1.2], 'text-anchor': 'top' },
+      layout: { 'text-field': ['get', 'name'], 'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 15, 12, 18, 17], 'text-offset': [0, 1.2], 'text-anchor': 'top' },
       paint: { 'text-color': '#5b21b6', 'text-halo-color': '#fff', 'text-halo-width': 1.6 },
     })
     map.on('click', 'art', (e) => {
@@ -428,13 +428,13 @@ onMounted(async () => {
       id: 'camps',
       type: 'circle',
       source: 'camps',
-      paint: { 'circle-radius': 6, 'circle-color': '#d6336c', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4.5, 15, 6.5, 18, 13], 'circle-color': '#d6336c', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 },
     })
     map.addLayer({
       id: 'camp-labels',
       type: 'symbol',
       source: 'camps',
-      layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-offset': [0, 1.2], 'text-anchor': 'top' },
+      layout: { 'text-field': ['get', 'name'], 'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 15, 12, 18, 17], 'text-offset': [0, 1.2], 'text-anchor': 'top' },
       paint: { 'text-color': '#1c2733', 'text-halo-color': '#fff', 'text-halo-width': 1.6 },
     })
     map.on('click', 'camps', (e) => {
