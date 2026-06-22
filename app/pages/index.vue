@@ -231,7 +231,6 @@ const itemOptions = computed(() => [
           <span v-if="gateRoadColor" class="mr-1 inline-block size-2 rounded-full align-middle" :style="{ background: gateRoadColor }" />Gate
         </UButton>
         <UButton to="/guide" size="xs" color="neutral" variant="ghost" class="text-white/80 hover:text-white">Guide</UButton>
-        <UButton to="/about" size="xs" color="neutral" variant="ghost" class="text-white/80 hover:text-white">About</UButton>
       </div>
 
       <div class="pointer-events-auto flex items-center gap-2">

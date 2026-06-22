@@ -10,7 +10,6 @@ const links = computed(() => [
   { label: 'Gate', to: '/gate', icon: 'i-lucide-traffic-cone' },
   { label: 'Live', to: '/live', icon: 'i-lucide-radio' },
   { label: 'Guide', to: '/guide', icon: 'i-lucide-compass' },
-  { label: 'About', to: '/about', icon: 'i-lucide-info' },
   ...(isAdmin.value ? [{ label: 'Admin', to: '/admin', icon: 'i-lucide-shield' }] : []),
 ])
 
