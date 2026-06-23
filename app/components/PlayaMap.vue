@@ -10,7 +10,7 @@ import { cityGridGeoJson, civicLandmarksGeoJson, getCenterCampPoint, getManPoint
 
 interface CampPin { name: string, lat: number, lng: number, address: string, frontageFt?: number | null, depthFt?: number | null }
 
-const props = defineProps<{ camps: CampPin[], artPins?: CampPin[], focus?: { lat: number, lng: number } | null, gateColor?: string, layers?: Record<string, boolean>, basemap?: 'blocks' | 'lines', dropMode?: boolean, sunTime?: number | null }>()
+const props = defineProps<{ camps: CampPin[], artPins?: CampPin[], focus?: { lat: number, lng: number } | null, gateColor?: string, layers?: Record<string, boolean>, basemap?: 'blocks' | 'lines', dropMode?: boolean, sunTime?: number | null, wind?: { dir: number, gusts: number, color: string } | null }>()
 
 // Swap between the real street-line geometry (default) and the filled-block plan.
 function applyBasemap() {
@@ -71,6 +71,45 @@ function pinsGeoJson(pins: CampPin[]): GeoJSON.FeatureCollection {
       geometry: { type: 'Point', coordinates: [c.lng, c.lat] },
     })),
   }
+}
+
+// Live-wind layer: a uniform field of arrows across the playa, all pointing the
+// way the wind is blowing (meteorological `dir` is where it blows FROM, so the
+// arrows point dir+180). Drawn as little arrow polylines so they render without
+// any sprite image. Empty when the wind layer is off / no reading.
+function windFieldGeoJson(wind: { dir: number, gusts: number, color: string } | null | undefined): GeoJSON.FeatureCollection {
+  if (!wind)
+    return { type: 'FeatureCollection', features: [] }
+  const [clng, clat] = getManPoint()
+  const M_LAT = 111320
+  const mLng = M_LAT * Math.cos((clat * Math.PI) / 180)
+  const bearing = ((wind.dir + 180) % 360) * Math.PI / 180 // radians, blows-to
+  const L = 230 // arrow length (m); barbs are a fraction of it
+  const ux = Math.sin(bearing) // east unit
+  const uy = Math.cos(bearing) // north unit
+  const off = (x: number, y: number, dE: number, dN: number): [number, number] => [x + dE / mLng, y + dN / M_LAT]
+  const features: GeoJSON.Feature[] = []
+  const stepM = 360 // grid spacing (m)
+  for (let dn = -1900; dn <= 1900; dn += stepM) {
+    for (let de = -2100; de <= 2100; de += stepM) {
+      const cx = clng + de / mLng
+      const cy = clat + dn / M_LAT
+      const tail = off(cx, cy, -ux * L / 2, -uy * L / 2)
+      const tip = off(cx, cy, ux * L / 2, uy * L / 2)
+      // two barbs, swept back ~140° from the shaft
+      const bA = bearing + (140 * Math.PI / 180)
+      const bB = bearing - (140 * Math.PI / 180)
+      const barbLen = L * 0.4
+      const barb1 = off(tip[0], tip[1], Math.sin(bA) * barbLen, Math.cos(bA) * barbLen)
+      const barb2 = off(tip[0], tip[1], Math.sin(bB) * barbLen, Math.cos(bB) * barbLen)
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'MultiLineString', coordinates: [[tail, tip], [barb1, tip, barb2]] },
+      })
+    }
+  }
+  return { type: 'FeatureCollection', features }
 }
 
 // Rectangular plot footprints for camps that set frontage/depth (feet): a box
@@ -525,6 +564,19 @@ onMounted(async () => {
       source: 'shadows',
       paint: { 'fill-color': '#1c2733', 'fill-opacity': 0.22 },
     })
+    // live wind arrows (when the Wind layer is on) — over the city, under the pins
+    map.addSource('wind', { type: 'geojson', data: windFieldGeoJson(props.wind) })
+    map.addLayer({
+      id: 'wind-arrows',
+      type: 'line',
+      source: 'wind',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': props.wind?.color ?? '#2563eb',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1.1, 15, 2, 18, 3.5],
+        'line-opacity': 0.9,
+      },
+    })
     // camp plot footprints (appear as you zoom in) — drawn under the pins
     map.addSource('camp-plots', { type: 'geojson', data: campPlotsGeoJson(props.camps) })
     map.addLayer({
@@ -625,6 +677,13 @@ watch(() => props.camps, () => {
 watch(() => props.sunTime, () => {
   ;(map?.getSource('shadows') as GeoJSONSource | undefined)?.setData(shadowsGeoJson(props.camps, props.sunTime))
 })
+
+// redraw the wind arrows + recolor when the Wind layer toggles or the reading updates
+watch(() => props.wind, (w) => {
+  ;(map?.getSource('wind') as GeoJSONSource | undefined)?.setData(windFieldGeoJson(w))
+  if (map?.getLayer('wind-arrows'))
+    map.setPaintProperty('wind-arrows', 'line-color', w?.color ?? '#2563eb')
+}, { deep: true })
 
 // keep art pins in sync
 watch(() => props.artPins, () => {

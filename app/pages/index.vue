@@ -2,7 +2,7 @@
 import type { GateStatus } from '~~/lib/gate'
 import { CITY_YEAR, describeLatLng, formatAddress, formatAddressNamed, parseAddress } from '~~/lib/brc/geocode'
 import { GATE_STATUS_META, gateColor } from '~~/lib/gate'
-import { dustRisk, wmo } from '~~/lib/weather'
+import { dustRisk, windDir, wmo } from '~~/lib/weather'
 
 function namedAddress(s: string | null | undefined): string {
   if (!s)
@@ -110,8 +110,21 @@ const gateRoadColor = computed(() => gateData.value?.inbound ? gateColor(gateDat
 const gateStatusLabel = computed(() => gateData.value?.inbound ? GATE_STATUS_META[gateData.value.inbound.status].label : 'No data')
 
 // live weather → a compact pill (temp + gusts + dust) linking to /live
-const { data: weatherData } = await useFetch<{ current: { temperature_2m: number, weather_code: number, wind_gusts_10m: number } | null }>('/api/weather')
+const { data: weatherData } = await useFetch<{ current: { temperature_2m: number, weather_code: number, wind_speed_10m: number, wind_gusts_10m: number, wind_direction_10m: number } | null }>('/api/weather')
 const wx = computed(() => weatherData.value?.current ?? null)
+
+// --- live wind layer: a field of arrows across the playa + a readout ---------
+const windMode = ref(false)
+const windInfo = computed(() => {
+  const c = wx.value
+  if (!c || c.wind_direction_10m == null)
+    return null
+  return { dir: c.wind_direction_10m, speed: c.wind_speed_10m, gusts: c.wind_gusts_10m, ...dustRisk(c.wind_gusts_10m), from: windDir(c.wind_direction_10m) }
+})
+// passed to the map: null hides the arrows; otherwise direction + dust colour
+const windLayer = computed(() => (windMode.value && windInfo.value)
+  ? { dir: windInfo.value.dir, gusts: windInfo.value.gusts, color: windInfo.value.color }
+  : null)
 
 // map layer visibility (the legend doubles as the toggle control)
 const layers = reactive({ camps: true, art: true, toilets: true, medical: true, safety: true, services: true, transport: true })
@@ -352,7 +365,7 @@ const itemOptions = computed(() => [
   <div class="relative size-full overflow-hidden">
     <div class="absolute inset-0">
       <ClientOnly>
-        <PlayaMap :camps="pins" :art-pins="artPins" :focus="focus" :gate-color="gateRoadColor" :layers="layers" :basemap="basemap" :drop-mode="!!dropMode || !!adminPlaceCamp" :sun-time="sunInstant" class="size-full" @position="onPosition" @pick="onPick" />
+        <PlayaMap :camps="pins" :art-pins="artPins" :focus="focus" :gate-color="gateRoadColor" :layers="layers" :basemap="basemap" :drop-mode="!!dropMode || !!adminPlaceCamp" :sun-time="sunInstant" :wind="windLayer" class="size-full" @position="onPosition" @pick="onPick" />
       </ClientOnly>
     </div>
 
@@ -439,6 +452,10 @@ const itemOptions = computed(() => [
           <UIcon name="i-lucide-sun" class="size-3.5" :class="shadowMode ? 'text-amber-400' : 'text-white/60'" />Sun &amp; shade
           <UIcon :name="shadowMode ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
         </button>
+        <button type="button" class="flex w-full items-center gap-1.5" :class="!windMode && 'opacity-40'" :disabled="!windInfo" @click="windMode = !windMode">
+          <UIcon name="i-lucide-wind" class="size-3.5" :class="windMode ? 'text-sky-300' : 'text-white/60'" />Live wind
+          <UIcon :name="windMode ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
+        </button>
         <button type="button" class="flex w-full items-center gap-1.5" :class="!layers.camps && 'opacity-40'" @click="layers.camps = !layers.camps">
           <span class="inline-block size-2 rounded-full" style="background:#d6336c" />Camps
           <UIcon :name="layers.camps ? 'i-lucide-eye' : 'i-lucide-eye-off'" class="ml-auto size-3 text-white/60" />
@@ -488,6 +505,17 @@ const itemOptions = computed(() => [
       <span class="text-white/60">{{ Math.round(wx.wind_gusts_10m) }} mph</span>
       <span class="size-2 rounded-full" :style="{ background: dustRisk(wx.wind_gusts_10m).color }" />
     </NuxtLink>
+
+    <!-- live wind readout (when the Wind layer is on) -->
+    <div v-if="windMode && windInfo" class="pointer-events-auto absolute left-3 top-28 flex items-center gap-2.5 rounded-xl border border-white/10 bg-[#26211a]/85 px-3 py-2 text-white shadow-lg backdrop-blur-xl">
+      <span class="flex size-7 shrink-0 items-center justify-center rounded-full" :style="{ background: `${windInfo.color}22` }">
+        <UIcon name="i-lucide-arrow-up" class="size-5 transition-transform" :style="{ transform: `rotate(${(windInfo.dir + 135) % 360}deg)`, color: windInfo.color }" />
+      </span>
+      <div class="leading-tight">
+        <p class="text-sm"><b>{{ Math.round(windInfo.speed) }} mph</b> <span class="text-white/55">gusts {{ Math.round(windInfo.gusts) }}</span></p>
+        <p class="text-xs text-white/60">from the {{ windInfo.from }} · {{ windInfo.label }}</p>
+      </div>
+    </div>
 
     <!-- compass rose (map orientation is locked to bearing 45°) -->
     <div class="pointer-events-none absolute bottom-20 right-4 sm:bottom-6">
