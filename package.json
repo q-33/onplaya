@@ -11,6 +11,7 @@
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
     "test": "vitest run",
+    "audit:ci": "node scripts/audit-ci.mjs",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
