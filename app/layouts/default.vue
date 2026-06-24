@@ -80,6 +80,7 @@ async function logout() {
         <p>An unofficial, community map of Black Rock City. Pins are approximate.</p>
         <div class="flex items-center gap-4 text-xs">
           <NuxtLink to="/about" class="hover:text-primary">About</NuxtLink>
+          <NuxtLink to="/contact" class="hover:text-primary">Contact</NuxtLink>
           <a href="https://github.com/q-33/burnermap" target="_blank" rel="noopener" class="hover:text-primary">GitHub</a>
         </div>
       </UContainer>

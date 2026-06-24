@@ -53,6 +53,7 @@ const navItems = [[
   { label: 'Art', icon: 'i-lucide-palette', to: '/art' },
   { label: 'Events', icon: 'i-lucide-calendar', to: '/events' },
   { label: 'Guide', icon: 'i-lucide-compass', to: '/guide' },
+  { label: 'Contact', icon: 'i-lucide-mail', to: '/contact' },
 ]]
 
 // optional ?lat&lng to focus a camp from the Camps list, or ?adminCamp=ID to
@@ -562,6 +563,9 @@ const itemOptions = computed(() => [
           <button type="button" class="w-full text-center text-xs text-(--ui-text-muted) underline" @click="mode = mode === 'login' ? 'register' : 'login'">
             {{ mode === 'login' ? 'Need an account? Sign up' : 'Have an account? Log in' }}
           </button>
+          <NuxtLink v-if="mode === 'login'" to="/forgot-password" class="block text-center text-xs text-(--ui-text-muted) underline" @click="authOpen = false">
+            Forgot your password?
+          </NuxtLink>
         </form>
       </template>
     </UModal>

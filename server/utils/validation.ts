@@ -11,6 +11,22 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 })
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+})
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(16).max(200),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+
+// Public contact form → emails the project inbox.
+export const contactSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().email(),
+  message: z.string().trim().min(1).max(4000),
+})
+
 export const campSchema = z.object({
   name: z.string().trim().min(1).max(200),
   year: z.number().int().gte(1986).lte(2100),

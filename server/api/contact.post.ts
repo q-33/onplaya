@@ -1,0 +1,21 @@
+import { contactSchema } from '../utils/validation'
+
+// Public contact form → emails the project inbox (CONTACT_TO), reply-to the
+// sender so a reply goes straight back to them.
+export default defineEventHandler(async (event) => {
+  rateLimit(event, 'contact-ip', 5, 30 * 60_000)
+  const { name, email, message } = await readValidatedBody(event, contactSchema.parse)
+
+  const ok = await sendEmail({
+    to: CONTACT_TO,
+    replyTo: `${name} <${email}>`,
+    subject: `BurnerMap contact from ${name}`,
+    text: `From: ${name} <${email}>\n\n${message}`,
+    html: `<p><strong>${esc(name)}</strong> &lt;${esc(email)}&gt; wrote via the BurnerMap contact form:</p>`
+      + `<blockquote style="margin:12px 0;padding:8px 12px;border-left:3px solid #e1641a;color:#444;white-space:pre-wrap">${esc(message)}</blockquote>`,
+  })
+  if (!ok)
+    throw createError({ statusCode: 503, statusMessage: 'Email isn’t set up yet — please write to digit@burnermap.org directly.' })
+
+  return { ok: true }
+})
