@@ -22,5 +22,9 @@ export default defineEventHandler(async (event) => {
 
   const sessionUser = { id: user.id, email: user.email, displayName: user.displayName, role: user.role, features: [] as string[] }
   await setUserSession(event, { user: sessionUser })
+
+  // Best-effort admin notification — never block/fail signup on it.
+  notifySignup(user.email, user.displayName).catch(() => {})
+
   return { user }
 })

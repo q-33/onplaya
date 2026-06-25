@@ -94,3 +94,16 @@ export async function sendPasswordReset(to: string, resetUrl: string): Promise<b
       + `<p style="color:#666;font-size:13px">This link expires in 1 hour. If you didn't request it, ignore this email — your password won't change.</p>`,
   })
 }
+
+// Admin notification: a new user registered. Sent to CONTACT_TO (digit@…).
+export async function notifySignup(email: string, displayName: string | null): Promise<void> {
+  const who = displayName || email
+  await sendEmail({
+    to: CONTACT_TO,
+    subject: `New BurnerMap signup: ${who}`,
+    text: `A new user just registered on BurnerMap:\n\n  Email: ${email}\n  Name:  ${displayName || '(none)'}\n\nManage users: ${SITE_URL}/admin?tab=people`,
+    html: `<p>A new user just registered on BurnerMap:</p>`
+      + `<ul><li><strong>Email:</strong> ${esc(email)}</li><li><strong>Name:</strong> ${esc(displayName || '(none)')}</li></ul>`
+      + `<p><a href="${SITE_URL}/admin?tab=people" style="color:#e1641a">Manage users →</a></p>`,
+  })
+}
