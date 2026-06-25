@@ -105,6 +105,72 @@ async function onAdminPlace(p: { lat: number, lng: number }) {
   catch { /* surface nothing; the marker stays for a retry */ }
 }
 
+// --- live boundary editor: ?editCamp=ID arms an on-map editor (drag the pin +
+// two edge handles) for any camp an admin/Org manages, or your own camp. The
+// map owns the live geometry; this page renders a readout + Save/Cancel. ---
+const DEFAULT_FRONTAGE = 150
+const DEFAULT_DEPTH = 100
+const mapRef = ref<{ nudgeEdit: (w: 'frontage' | 'depth', d: number) => void } | null>(null)
+const editLive = ref<{ lat: number, lng: number, frontageFt: number, depthFt: number } | null>(null)
+const editSaving = ref(false)
+const toast = useToast()
+
+const editCamp = computed(() => {
+  const id = route.query.editCamp
+  if (typeof id !== 'string')
+    return null
+  const c = (campsData.value as any[] | null)?.find(x => x.id === id)
+  if (!c)
+    return null
+  // Boundary editing is open to camp managers (admin/Org) or the camp's owner.
+  if (!canManageCamps.value && myCamp.value?.id !== id)
+    return null
+  const loc = (c.locations ?? []).filter((l: any) => l.gpsLatitude != null && l.gpsLongitude != null)
+    .sort((a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt))[0]
+  if (!loc) // a boundary needs a placed pin first
+    return null
+  return {
+    id: c.id,
+    name: c.name as string,
+    lat: loc.gpsLatitude as number,
+    lng: loc.gpsLongitude as number,
+    frontageFt: (c.frontageFt ?? DEFAULT_FRONTAGE) as number,
+    depthFt: (c.depthFt ?? DEFAULT_DEPTH) as number,
+  }
+})
+// Seed the readout from the camp's stored dims until the map emits live changes.
+watch(editCamp, (c) => {
+  editLive.value = c ? { lat: c.lat, lng: c.lng, frontageFt: c.frontageFt, depthFt: c.depthFt } : null
+}, { immediate: true })
+function onEditChange(e: { lat: number, lng: number, frontageFt: number, depthFt: number }) {
+  editLive.value = e
+}
+function exitEdit() {
+  const q = { ...route.query }
+  delete q.editCamp
+  navigateTo({ query: q })
+}
+async function saveEdit() {
+  const c = editCamp.value
+  const e = editLive.value
+  if (!c || !e)
+    return
+  editSaving.value = true
+  try {
+    await $fetch(`/api/camps/${c.id}`, { method: 'PATCH', body: { frontageFt: e.frontageFt, depthFt: e.depthFt } })
+    await $fetch('/api/locations', { method: 'POST', body: { campId: c.id, lat: e.lat, lng: e.lng } })
+    await refreshCamps()
+    toast.add({ title: 'Boundary saved', description: `${c.name}: ${e.frontageFt}×${e.depthFt} ft`, color: 'success', icon: 'i-lucide-check' })
+    exitEdit()
+  }
+  catch (err: any) {
+    toast.add({ title: 'Could not save', description: err?.data?.statusMessage ?? 'Try again', color: 'error' })
+  }
+  finally {
+    editSaving.value = false
+  }
+}
+
 // live Gate Road condition → colour the gate road + a status dot
 const { data: gateData } = await useFetch<{ inbound: { status: GateStatus } | null }>('/api/gate')
 const gateRoadColor = computed(() => gateData.value?.inbound ? gateColor(gateData.value.inbound.status) : undefined)
@@ -356,6 +422,14 @@ function moveCampPin() {
   startDrop('camp')
 }
 
+// jump from the details sheet into the live boundary editor for my own camp
+function editMyBoundary() {
+  if (!myCamp.value)
+    return
+  campEditOpen.value = false
+  navigateTo({ query: { ...route.query, editCamp: myCamp.value.id } })
+}
+
 const itemOptions = computed(() => [
   ...myItems.value.map(c => ({ label: c.name, value: c.id })),
   { label: `+ Create a new ${dropKind.value}`, value: '' },
@@ -366,7 +440,7 @@ const itemOptions = computed(() => [
   <div class="relative size-full overflow-hidden">
     <div class="absolute inset-0">
       <ClientOnly>
-        <PlayaMap :camps="pins" :art-pins="artPins" :focus="focus" :gate-color="gateRoadColor" :layers="layers" :basemap="basemap" :drop-mode="!!dropMode || !!adminPlaceCamp" :sun-time="sunInstant" :wind="windLayer" class="size-full" @position="onPosition" @pick="onPick" />
+        <PlayaMap ref="mapRef" :camps="pins" :art-pins="artPins" :focus="focus" :gate-color="gateRoadColor" :layers="layers" :basemap="basemap" :drop-mode="!!dropMode || !!adminPlaceCamp" :sun-time="sunInstant" :wind="windLayer" :edit-camp="editCamp" class="size-full" @position="onPosition" @pick="onPick" @edit-change="onEditChange" />
       </ClientOnly>
     </div>
 
@@ -424,6 +498,38 @@ const itemOptions = computed(() => [
       <span class="truncate">Tap to {{ adminPlaceCamp.lat != null ? 'move' : 'place' }} <b>{{ adminPlaceCamp.name }}</b></span>
       <span v-if="adminPlaceSaved" class="shrink-0 text-green-400">saved&nbsp;✓</span>
       <NuxtLink :to="isAdmin ? '/admin' : '/camps'" class="shrink-0 text-white/60 underline hover:text-white">Done</NuxtLink>
+    </div>
+
+    <!-- live boundary editor: drag the pin + green edge handles on the map; this
+         panel mirrors the dimensions and offers precise +/- nudges + Save. -->
+    <div v-if="editCamp" class="pointer-events-auto absolute left-1/2 top-16 z-10 flex w-[min(22rem,calc(100vw-1.5rem))] -translate-x-1/2 flex-col gap-2.5 rounded-2xl border border-green-500/40 bg-[#26211a]/92 px-4 py-3 text-sm text-white shadow-lg backdrop-blur-xl">
+      <div class="flex items-center gap-2">
+        <UIcon name="i-lucide-frame" class="size-4 shrink-0 text-green-400" />
+        <span class="min-w-0 flex-1 truncate">Editing boundary · <b>{{ editCamp.name }}</b></span>
+        <span class="shrink-0 text-xs text-white/55">drag pin + handles</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="flex items-center justify-between gap-1 rounded-lg bg-white/5 px-2 py-1.5">
+          <span class="text-xs text-white/60">Frontage</span>
+          <div class="flex items-center gap-1">
+            <UButton size="xs" color="neutral" variant="soft" icon="i-lucide-minus" :aria-label="'Frontage −10 ft'" @click="mapRef?.nudgeEdit('frontage', -10)" />
+            <span class="w-14 text-center font-mono text-xs tabular-nums">{{ editLive?.frontageFt ?? editCamp.frontageFt }} ft</span>
+            <UButton size="xs" color="neutral" variant="soft" icon="i-lucide-plus" :aria-label="'Frontage +10 ft'" @click="mapRef?.nudgeEdit('frontage', 10)" />
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-1 rounded-lg bg-white/5 px-2 py-1.5">
+          <span class="text-xs text-white/60">Depth</span>
+          <div class="flex items-center gap-1">
+            <UButton size="xs" color="neutral" variant="soft" icon="i-lucide-minus" :aria-label="'Depth −10 ft'" @click="mapRef?.nudgeEdit('depth', -10)" />
+            <span class="w-14 text-center font-mono text-xs tabular-nums">{{ editLive?.depthFt ?? editCamp.depthFt }} ft</span>
+            <UButton size="xs" color="neutral" variant="soft" icon="i-lucide-plus" :aria-label="'Depth +10 ft'" @click="mapRef?.nudgeEdit('depth', 10)" />
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <UButton size="sm" color="success" class="flex-1" icon="i-lucide-check" :loading="editSaving" @click="saveEdit">Save boundary</UButton>
+        <UButton size="sm" color="neutral" variant="ghost" class="text-white/70 hover:text-white" :disabled="editSaving" @click="exitEdit">Cancel</UButton>
+      </div>
     </div>
 
     <!-- lower-left stack: gate status widget above the layers panel -->
@@ -629,6 +735,7 @@ const itemOptions = computed(() => [
             <UButton type="submit" class="flex-1" :loading="campSaveBusy" :disabled="!campForm.name.trim()">Save</UButton>
             <UButton color="neutral" variant="soft" icon="i-lucide-map-pin" @click="moveCampPin">Move pin</UButton>
           </div>
+          <UButton v-if="myCamp" block color="success" variant="soft" icon="i-lucide-frame" @click="editMyBoundary">Edit boundary on map</UButton>
         </form>
       </template>
     </UModal>

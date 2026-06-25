@@ -390,6 +390,7 @@ useHead({ title: 'Admin — BurnerMap' })
               </div>
               <UButton variant="ghost" size="xs" icon="i-lucide-pencil" @click="openCampEdit(c)">Edit</UButton>
               <UButton :to="`/?adminCamp=${c.id}`" variant="ghost" size="xs" icon="i-lucide-map-pin">Place</UButton>
+              <UButton v-if="c.address" :to="`/?editCamp=${c.id}`" variant="ghost" size="xs" icon="i-lucide-frame">Boundary</UButton>
               <UButton :color="c.hidden ? 'primary' : 'neutral'" variant="ghost" size="xs" :icon="c.hidden ? 'i-lucide-eye' : 'i-lucide-eye-off'" :loading="busy === c.id" @click="toggleHidden('camps', c.id, !c.hidden)">{{ c.hidden ? 'Show' : 'Hide' }}</UButton>
               <UButton color="error" variant="ghost" size="xs" icon="i-lucide-trash-2" :loading="busy === c.id" @click="del('camps', c.id, c.name)">Delete</UButton>
             </div>
@@ -463,7 +464,7 @@ useHead({ title: 'Admin — BurnerMap' })
             <UInput v-model.number="campForm.frontageFt" type="number" min="0" placeholder="Frontage (ft)" class="w-full" />
             <UInput v-model.number="campForm.depthFt" type="number" min="0" placeholder="Depth (ft)" class="w-full" />
           </div>
-          <p class="text-xs text-(--ui-text-muted)">To move/place the pin, use “Place” on the map.</p>
+          <p class="text-xs text-(--ui-text-muted)">Tip: use “Boundary” to drag the pin &amp; resize the plot live on the map.</p>
           <p v-if="campEditError" class="text-sm text-red-600">{{ campEditError }}</p>
           <UButton type="submit" block :loading="campEditBusy" :disabled="!campForm.name.trim()">Save details</UButton>
         </form>

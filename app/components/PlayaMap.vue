@@ -9,8 +9,10 @@ import { cityGridGeoJson, civicLandmarksGeoJson, getCenterCampPoint, getManPoint
 // (.client components break template refs / onMounted DOM access in Nuxt.)
 
 interface CampPin { name: string, lat: number, lng: number, address: string, frontageFt?: number | null, depthFt?: number | null }
+// A camp whose boundary is being edited live on the map (admin/owner tool).
+export interface EditCamp { id: string, name: string, lat: number, lng: number, frontageFt: number, depthFt: number }
 
-const props = defineProps<{ camps: CampPin[], artPins?: CampPin[], focus?: { lat: number, lng: number } | null, gateColor?: string, layers?: Record<string, boolean>, basemap?: 'blocks' | 'lines', dropMode?: boolean, sunTime?: number | null, wind?: { dir: number, gusts: number, color: string } | null }>()
+const props = defineProps<{ camps: CampPin[], artPins?: CampPin[], focus?: { lat: number, lng: number } | null, gateColor?: string, layers?: Record<string, boolean>, basemap?: 'blocks' | 'lines', dropMode?: boolean, sunTime?: number | null, wind?: { dir: number, gusts: number, color: string } | null, editCamp?: EditCamp | null }>()
 
 // Swap between the real street-line geometry (default) and the filled-block plan.
 function applyBasemap() {
@@ -56,11 +58,17 @@ function applyLayerVisibility() {
 const emit = defineEmits<{
   position: [{ lat: number, lng: number, accuracy?: number }]
   pick: [{ lat: number, lng: number }]
+  editChange: [{ lat: number, lng: number, frontageFt: number, depthFt: number }]
 }>()
 
 const el = useTemplateRef<HTMLDivElement>('mapEl')
 let map: MlMap | undefined
 let pickMarker: Marker | undefined
+// MapLibre is dynamically imported in onMounted; stash it here so the boundary
+// editor (whose handlers live at script scope) can build its markers too.
+// (Typed loosely, like the local `maplibregl` const — the module's default
+// export isn't surfaced as a named type.)
+let mlgl: any
 
 // Escape user-controlled text before it goes into a popup's innerHTML (setHTML).
 // Camp/art names + addresses are user input, so without this a name like
@@ -120,33 +128,45 @@ function windFieldGeoJson(wind: { dir: number, gusts: number, color: string } | 
   return { type: 'FeatureCollection', features }
 }
 
-// Rectangular plot footprints for camps that set frontage/depth (feet): a box
-// centred on the pin, frontage along the street (tangential), depth radial.
-function campPlotsGeoJson(pins: CampPin[]): GeoJSON.FeatureCollection {
+// Geometry of a camp plot at lat/lng with frontage/depth (feet): the box is
+// centred on the pin, frontage running tangentially (along the street) and depth
+// radially (toward/away from the Man). Returns the metres-per-degree, the local
+// radial/tangential unit axes, the corner ring, and the two edge-midpoint
+// "handle" points used by the live boundary editor. Orientation is derived from
+// the pin's bearing off the Man, so there's no stored rotation to track.
+function plotGeometry(lat: number, lng: number, frontageFt: number, depthFt: number) {
   const [manLng, manLat] = getManPoint()
   const MLAT = 111320
   const MLNG = MLAT * Math.cos((manLat * Math.PI) / 180)
+  const E = (lng - manLng) * MLNG
+  const N = (lat - manLat) * MLAT
+  const r = Math.hypot(E, N) || 1
+  const rad: [number, number] = [E / r, N / r] // outward → depth axis
+  const tan: [number, number] = [-N / r, E / r] // along the street → frontage axis
+  const hf = (frontageFt * 0.3048) / 2 // half-frontage, metres
+  const hd = (depthFt * 0.3048) / 2 // half-depth, metres
+  const pt = (de: number, dn: number): [number, number] => [manLng + (E + de) / MLNG, manLat + (N + dn) / MLAT]
+  const corner = (sf: number, sd: number) => pt(sf * hf * tan[0] + sd * hd * rad[0], sf * hf * tan[1] + sd * hd * rad[1])
+  return {
+    MLNG, MLAT, E, N, manLng, manLat, rad, tan,
+    ring: [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1), corner(-1, -1)],
+    frontageHandle: pt(hf * tan[0], hf * tan[1]), // +tangential edge midpoint
+    depthHandle: pt(hd * rad[0], hd * rad[1]), // +radial (outer) edge midpoint
+  }
+}
+
+// Rectangular plot footprints for camps that set frontage/depth (feet).
+function campPlotsGeoJson(pins: CampPin[]): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = []
   for (const c of pins) {
     const fF = c.frontageFt ?? 0
     const dF = c.depthFt ?? 0
     if (fF <= 0 || dF <= 0)
       continue
-    const E = (c.lng - manLng) * MLNG
-    const N = (c.lat - manLat) * MLAT
-    const r = Math.hypot(E, N) || 1
-    const rad: [number, number] = [E / r, N / r] // outward → depth axis
-    const tan: [number, number] = [-N / r, E / r] // along the street → frontage axis
-    const hf = (fF * 0.3048) / 2 // half-frontage, metres
-    const hd = (dF * 0.3048) / 2 // half-depth, metres
-    const corner = (sf: number, sd: number): [number, number] => [
-      manLng + (E + sf * hf * tan[0] + sd * hd * rad[0]) / MLNG,
-      manLat + (N + sf * hf * tan[1] + sd * hd * rad[1]) / MLAT,
-    ]
     features.push({
       type: 'Feature',
       properties: { name: c.name },
-      geometry: { type: 'Polygon', coordinates: [[corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1), corner(-1, -1)]] },
+      geometry: { type: 'Polygon', coordinates: [plotGeometry(c.lat, c.lng, fF, dF).ring] },
     })
   }
   return { type: 'FeatureCollection', features }
@@ -214,11 +234,121 @@ function shadowsGeoJson(pins: CampPin[], sunTime: number | null | undefined): Ge
   return { type: 'FeatureCollection', features }
 }
 
+// --- live boundary editor --------------------------------------------------
+// A green plot overlay with three draggable markers: the centre pin (reposition)
+// and two edge handles that resize frontage (tangential) and depth (radial).
+// All editing happens on the map; the parent's panel is a readout + Save/Cancel.
+// `edit` is the single source of truth; the parent receives it via `editChange`.
+const MIN_FT = 20
+const MAX_FT = 3000
+const edit = { id: '', lat: 0, lng: 0, frontageFt: 0, depthFt: 0 }
+let editCenter: Marker | undefined
+let editFront: Marker | undefined
+let editDepth: Marker | undefined
+
+const clampFt = (v: number): number => Math.max(MIN_FT, Math.min(MAX_FT, Math.round(v)))
+const EMPTY_FC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
+
+function handleEl(title: string): HTMLDivElement {
+  const d = document.createElement('div')
+  d.title = `Drag to set ${title}`
+  d.style.cssText = 'width:15px;height:15px;border-radius:3px;background:#16a34a;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);cursor:grab'
+  return d
+}
+
+function renderEdit(): void {
+  if (!map)
+    return
+  const g = plotGeometry(edit.lat, edit.lng, edit.frontageFt, edit.depthFt)
+  ;(map.getSource('edit-plot') as GeoJSONSource | undefined)?.setData({
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [g.ring] } }],
+  })
+  editCenter?.setLngLat([edit.lng, edit.lat])
+  editFront?.setLngLat(g.frontageHandle)
+  editDepth?.setLngLat(g.depthHandle)
+  emit('editChange', { lat: edit.lat, lng: edit.lng, frontageFt: edit.frontageFt, depthFt: edit.depthFt })
+}
+
+// Project a dragged handle's offset from the centre onto its axis (tangential
+// for frontage, radial for depth); twice that distance is the new dimension.
+function onHandleDrag(which: 'frontage' | 'depth'): void {
+  const m = which === 'frontage' ? editFront : editDepth
+  if (!m)
+    return
+  const ll = m.getLngLat()
+  const g = plotGeometry(edit.lat, edit.lng, edit.frontageFt, edit.depthFt)
+  const dE = (ll.lng - g.manLng) * g.MLNG - g.E
+  const dN = (ll.lat - g.manLat) * g.MLAT - g.N
+  const axis = which === 'frontage' ? g.tan : g.rad
+  const halfM = Math.abs(dE * axis[0] + dN * axis[1])
+  const ft = clampFt((halfM * 2) / 0.3048)
+  if (which === 'frontage')
+    edit.frontageFt = ft
+  else
+    edit.depthFt = ft
+  renderEdit() // snaps the handle back onto its axis at the clamped size
+}
+
+function teardownEdit(): void {
+  editCenter?.remove(); editCenter = undefined
+  editFront?.remove(); editFront = undefined
+  editDepth?.remove(); editDepth = undefined
+  if (map?.getLayer('edit-plot-fill'))
+    map.removeLayer('edit-plot-fill')
+  if (map?.getLayer('edit-plot-outline'))
+    map.removeLayer('edit-plot-outline')
+  if (map?.getSource('edit-plot'))
+    map.removeSource('edit-plot')
+}
+
+function setupEdit(c: EditCamp): void {
+  if (!map || !mlgl)
+    return
+  teardownEdit()
+  Object.assign(edit, { id: c.id, lat: c.lat, lng: c.lng, frontageFt: clampFt(c.frontageFt), depthFt: clampFt(c.depthFt) })
+  map.addSource('edit-plot', { type: 'geojson', data: EMPTY_FC })
+  map.addLayer({ id: 'edit-plot-fill', type: 'fill', source: 'edit-plot', paint: { 'fill-color': '#16a34a', 'fill-opacity': 0.22 } })
+  map.addLayer({ id: 'edit-plot-outline', type: 'line', source: 'edit-plot', paint: { 'line-color': '#16a34a', 'line-width': 2.5 } })
+
+  const g = plotGeometry(edit.lat, edit.lng, edit.frontageFt, edit.depthFt)
+  const center: Marker = new mlgl.Marker({ color: '#16a34a', draggable: true }).setLngLat([edit.lng, edit.lat]).addTo(map)
+  center.on('drag', () => {
+    const ll = center.getLngLat()
+    edit.lat = ll.lat
+    edit.lng = ll.lng
+    renderEdit()
+  })
+  editCenter = center
+  const front: Marker = new mlgl.Marker({ element: handleEl('frontage'), draggable: true }).setLngLat(g.frontageHandle).addTo(map)
+  front.on('drag', () => onHandleDrag('frontage'))
+  editFront = front
+  const depth: Marker = new mlgl.Marker({ element: handleEl('depth'), draggable: true }).setLngLat(g.depthHandle).addTo(map)
+  depth.on('drag', () => onHandleDrag('depth'))
+  editDepth = depth
+
+  renderEdit()
+  map.flyTo({ center: [edit.lng, edit.lat], zoom: 16.2, speed: 0.9 })
+}
+
+// Precise +/- nudges from the parent panel's steppers (single source of truth).
+function nudgeEdit(which: 'frontage' | 'depth', delta: number): void {
+  if (!props.editCamp)
+    return
+  if (which === 'frontage')
+    edit.frontageFt = clampFt(edit.frontageFt + delta)
+  else
+    edit.depthFt = clampFt(edit.depthFt + delta)
+  renderEdit()
+}
+defineExpose({ nudgeEdit })
+
 onMounted(async () => {
   await nextTick()
   if (!el.value)
     return
   const maplibregl = (await import('maplibre-gl')).default
+  mlgl = maplibregl
 
   // resolve once, after the golden-spike plugin has calibrated the city center
   const man = getManPoint()
@@ -656,6 +786,10 @@ onMounted(async () => {
     // it because it fires before the map finishes loading.
     if (props.focus)
       map.flyTo({ center: [props.focus.lng, props.focus.lat], zoom: 15, speed: 0.8 })
+    // arm the boundary editor if we loaded straight into ?editCamp=… (the watch
+    // below can fire before the map is ready).
+    if (props.editCamp)
+      setupEdit(props.editCamp)
   })
 })
 
@@ -712,6 +846,17 @@ watch(() => props.gateColor, (c) => {
 watch(() => props.focus, (f) => {
   if (f && map)
     map.flyTo({ center: [f.lng, f.lat], zoom: 15, speed: 0.8 })
+})
+
+// arm/disarm the live boundary editor as the parent enters/leaves edit mode.
+// Keyed on the camp id so re-selecting a different camp re-arms cleanly.
+watch(() => props.editCamp?.id, () => {
+  if (!map)
+    return
+  if (props.editCamp)
+    setupEdit(props.editCamp)
+  else
+    teardownEdit()
 })
 
 onBeforeUnmount(() => map?.remove())
