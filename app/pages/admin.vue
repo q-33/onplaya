@@ -132,6 +132,17 @@ async function del(type: 'camps' | 'art' | 'events', id: string, label: string) 
   finally { busy.value = '' }
 }
 
+// Convert an artwork a user accidentally dropped as art into a camp.
+async function convertToCamp(id: string, label: string) {
+  // eslint-disable-next-line no-alert
+  if (!window.confirm(`Convert “${label}” from art to a camp? Its pin moves to a new camp owned by the same user, and the art entry is removed.`))
+    return
+  busy.value = id
+  try { await $fetch(`/api/admin/art/${id}/to-camp`, { method: 'POST' }); await refreshContent(); await refreshRecent(); await refreshAudit() }
+  catch (e: any) { msg.value = e?.data?.statusMessage ?? 'Could not convert' }
+  finally { busy.value = '' }
+}
+
 // --- edit a camp's details (admin) -----------------------------------------
 const campEditOpen = ref(false)
 const campEditId = ref('')
@@ -391,6 +402,7 @@ useHead({ title: 'Admin — BurnerMap' })
                 <p class="truncate text-xs text-(--ui-text-muted)">{{ a.owner ?? 'no owner' }} · {{ a.contributions }} contribution(s)<span v-if="a.pending"> · {{ a.pending }} pending</span></p>
               </div>
               <UButton :to="`/art/${a.id}`" variant="ghost" size="xs" icon="i-lucide-external-link">Open</UButton>
+              <UButton v-if="a.owner" color="primary" variant="ghost" size="xs" icon="i-lucide-tent" :loading="busy === a.id" @click="convertToCamp(a.id, a.name)">→ Camp</UButton>
               <UButton :color="a.hidden ? 'primary' : 'neutral'" variant="ghost" size="xs" :icon="a.hidden ? 'i-lucide-eye' : 'i-lucide-eye-off'" :loading="busy === a.id" @click="toggleHidden('art', a.id, !a.hidden)">{{ a.hidden ? 'Show' : 'Hide' }}</UButton>
               <UButton color="error" variant="ghost" size="xs" icon="i-lucide-trash-2" :loading="busy === a.id" @click="del('art', a.id, a.name)">Delete</UButton>
             </div>
