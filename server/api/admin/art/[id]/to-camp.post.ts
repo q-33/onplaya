@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { art, camps, locations } from '../../../../db/schema'
+import { canOwnMultipleCamps } from '~~/lib/roles'
+import { art, camps, locations, users } from '../../../../db/schema'
 
 // Admin: convert an artwork into a camp (for users who dropped their camp as
 // art). Creates a camp from the art's fields, moves its location pin(s) over,
@@ -18,11 +19,15 @@ export default defineEventHandler(async (event) => {
   if (!row)
     throw createError({ statusCode: 404, statusMessage: 'Art not found' })
 
-  // One camp per owner — don't clobber an existing camp.
+  // One camp per owner — don't clobber an existing camp. Hubs (and BM Org /
+  // admins) may own several, so they're exempt — see canOwnMultipleCamps.
   if (row.ownerId) {
-    const [existing] = await db.select({ id: camps.id }).from(camps).where(eq(camps.ownerId, row.ownerId)).limit(1)
-    if (existing)
-      throw createError({ statusCode: 409, statusMessage: 'That artist already owns a camp — can\'t convert without overwriting it.' })
+    const owner = await db.query.users.findFirst({ where: eq(users.id, row.ownerId), columns: { role: true } })
+    if (!canOwnMultipleCamps(owner?.role)) {
+      const [existing] = await db.select({ id: camps.id }).from(camps).where(eq(camps.ownerId, row.ownerId)).limit(1)
+      if (existing)
+        throw createError({ statusCode: 409, statusMessage: 'That artist already owns a camp — can\'t convert without overwriting it.' })
+    }
   }
 
   const camp = await db.transaction(async (tx) => {
