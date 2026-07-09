@@ -5,6 +5,15 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@meshtastic/core':
+    specifier: 2.6.7
+    version: 2.6.7
+  '@meshtastic/transport-web-bluetooth':
+    specifier: 0.1.5
+    version: 0.1.5
+  '@meshtastic/transport-web-serial':
+    specifier: 0.2.5
+    version: 0.2.5
   '@nuxt/ui':
     specifier: ^4.9.0
     version: 4.9.0(@tiptap/core@3.27.1)(@tiptap/extension-bubble-menu@3.27.1)(@tiptap/extension-code@3.27.1)(@tiptap/extension-collaboration@3.27.1)(@tiptap/extension-drag-handle-vue-3@3.27.1)(@tiptap/extension-drag-handle@3.27.1)(@tiptap/extension-floating-menu@3.27.1)(@tiptap/extension-horizontal-rule@3.27.1)(@tiptap/extension-image@3.27.1)(@tiptap/extension-mention@3.27.1)(@tiptap/extension-node-range@3.27.1)(@tiptap/extension-placeholder@3.27.1)(@tiptap/markdown@3.27.1)(@tiptap/pm@3.27.1)(@tiptap/starter-kit@3.27.1)(@tiptap/suggestion@3.27.1)(@tiptap/vue-3@3.27.1)(embla-carousel@8.6.0)(tailwindcss@4.3.1)(typescript@5.9.3)(vite@8.0.16)(vue-router@5.1.0)(vue@3.5.35)(zod@4.4.3)
@@ -2636,6 +2645,35 @@ packages:
       pbf: 5.1.0
     dev: false
 
+  /@meshtastic/core@2.6.7:
+    resolution: {integrity: sha512-0iP/gfzhqVWBzTpJNn2dHp2BiUSQq5xPUDCtssBqI9Y/X64sQ2cPDCKoyGsFPn8VXrJG3B/lQd/yPhg0GytATA==}
+    requiresBuild: true
+    dependencies:
+      crc: 4.3.2
+    transitivePeerDependencies:
+      - buffer
+    dev: false
+
+  /@meshtastic/transport-web-bluetooth@0.1.5:
+    resolution: {integrity: sha512-dWbGLiM1rKppp0PqsMh2HENkaqnUeZe1HFpy6heE6crA+L9N+XruI9RLEv4u2Cypc9s+Flut5inNxEbuQfFRHQ==}
+    requiresBuild: true
+    dependencies:
+      '@meshtastic/core': 2.6.7
+      '@types/web-bluetooth': 0.0.20
+    transitivePeerDependencies:
+      - buffer
+    dev: false
+
+  /@meshtastic/transport-web-serial@0.2.5:
+    resolution: {integrity: sha512-AaIEfHONjcBK9HgDtg2Mtmq+3jgVIJfTIISxKfXmN3EdhH1WNhu9d6ZI3VSB9T8KD7Bz8wzgQZmcyDIU89tUyQ==}
+    requiresBuild: true
+    dependencies:
+      '@meshtastic/core': 2.6.7
+      '@types/w3c-web-serial': 1.0.8
+    transitivePeerDependencies:
+      - buffer
+    dev: false
+
   /@napi-rs/wasm-runtime@1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0):
     resolution: {integrity: sha512-AWPoBRJ9tsnVhor4sjO7rkni+7p+2IAEFj6cx06UgP10jkQHqay/36uRV/bFkgrh18D9vb4cr8Q0Pthskgzy+Q==}
     requiresBuild: true
@@ -5159,6 +5197,10 @@ packages:
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
     dev: true
 
+  /@types/w3c-web-serial@1.0.8:
+    resolution: {integrity: sha512-QQOT+bxQJhRGXoZDZGLs3ksLud1dMNnMiSQtBA0w8KXvLpXX4oM4TZb6J0GgJ8UbCaHo5s9/4VQT8uXy9JER2A==}
+    dev: false
+
   /@types/web-bluetooth@0.0.20:
     resolution: {integrity: sha512-g9gZnnXVq7gM7v3tJCWV/qw7w+KeOlSHAhgF9RytFyifW6AF61hdT2ucrYhPq9hLs5JIryeupHV3qGk95dH9ow==}
     dev: false
@@ -6244,6 +6286,16 @@ packages:
     dependencies:
       crc-32: 1.2.2
       readable-stream: 4.7.0
+    dev: false
+
+  /crc@4.3.2:
+    resolution: {integrity: sha512-uGDHf4KLLh2zsHa8D8hIQ1H/HtFQhyHrc0uhHBcoKGol/Xnb+MPYfUMw7cvON6ze/GUESTudKayDcJC5HnJv1A==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      buffer: '>=6.0.3'
+    peerDependenciesMeta:
+      buffer:
+        optional: true
     dev: false
 
   /croner@10.0.1:

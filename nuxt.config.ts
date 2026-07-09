@@ -1,5 +1,24 @@
+import { fileURLToPath } from 'node:url'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  hooks: {
+    // @meshtastic/core (via its tslog logger) statically imports node built-ins
+    // os/path/util. It's only ever dynamically imported client-side, so shim
+    // those for the browser build; the Nitro server keeps the real modules.
+    'vite:extendConfig': (rawConfig, { isClient }) => {
+      if (!isClient)
+        return
+      const config = rawConfig as any
+      config.resolve ??= {}
+      config.resolve.alias ??= {}
+      Object.assign(config.resolve.alias, {
+        os: fileURLToPath(new URL('./shims/os.mjs', import.meta.url)),
+        path: fileURLToPath(new URL('./shims/path.mjs', import.meta.url)),
+        util: fileURLToPath(new URL('./shims/util.mjs', import.meta.url)),
+      })
+    },
+  },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/ui', 'nuxt-auth-utils', '@vite-pwa/nuxt'],
