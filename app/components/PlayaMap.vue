@@ -520,12 +520,15 @@ onMounted(async () => {
     })
     // portals: open plaza circles. The fill-mask erases the blocks/grid/avenues
     // underneath so the circles read as clear open plazas (no lines through them).
+    // Center Camp is the exception — the official 2026 plan fills Rod's Ring Road
+    // blue (camps/plaza), with only the ring-road + café drawn as outline circles,
+    // so it masks with the block azure rather than the open-plaza cream.
     map.addLayer({
       id: 'portal-mask',
       type: 'fill',
       source: 'grid',
       filter: ['==', ['get', 'kind'], 'portal-fill'],
-      paint: { 'fill-color': '#fbf9f5' },
+      paint: { 'fill-color': ['case', ['==', ['get', 'name'], 'Center Camp'], '#2fa1fa', '#fbf9f5'] },
     })
     map.addLayer({
       id: 'portals',

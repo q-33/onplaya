@@ -50,16 +50,18 @@ function block(rIn: number, rOut: number, t0: number, t1: number, camp: number, 
   return { type: 'Feature', properties: { kind: 'block', camp, shade: Math.round(shade * 100) / 100 }, geometry: { type: 'Polygon', coordinates: [ring] } }
 }
 
-// Center Camp geometry, measured directly from the official 2026 plan PDF's
-// vector data: Rod's Ring Road is a ~40 m-radius circle centred on the Café
-// Canopy, 906 m from the Man on the 6:00 axis (the plaza ring + café sit at the
-// junction of four camp plots). The inner camp edge bows toward the Man at 6:00
-// into a blue "keyhole dome" whose apex reaches ~668 m (inside the Esplanade);
-// the camps FILL that dome — it is not an open throat.
-const CANOPY_M = 906
-const CENTER_CAMP_R = 40 // Rod's Ring Road radius (PDF: ~40 m)
-const CAFE_R = 18 // inner café circle
-const DOME_APEX_M = 668 // dome apex (toward the Man), from the PDF
+// Center Camp geometry, measured directly from the official 2026 plan PDF
+// (BRC_City_Plan_2026_update.pdf) by rasterising it and reading pixel radii
+// against the known Esplanade radius (762 m) for scale. Rod's Ring Road is a
+// ~80 m-radius circle centred on the Café Canopy, ~917 m from the Man on the
+// 6:00 axis (the plaza ring + café sit at the junction of four camp plots). The
+// inner camp edge bows toward the Man at 6:00 into a blue "keyhole dome" whose
+// apex reaches ~670 m (inside the Esplanade); the camps FILL that dome — it is
+// not an open throat.
+const CANOPY_M = 917
+const CENTER_CAMP_R = 80 // Rod's Ring Road radius (PDF: ~80 m)
+const CAFE_R = 36 // inner café circle (PDF: ~35 m)
+const DOME_APEX_M = 670 // dome apex (toward the Man), from the PDF
 const DOME_HALF = 0.42 // dome half-width in clock-hours, from the PDF
 
 // A getter (not a module-load const) so it re-derives after the golden spike is
@@ -81,22 +83,6 @@ function trashFence(): [number, number][] {
   const ring = FENCE_OFFSETS.map(([dlng, dlat]) => [MAN.lng + dlng, MAN.lat + dlat] as [number, number])
   ring.push(ring[0]!)
   return ring
-}
-
-// Helpers for the lower entry/perimeter roads. The two southern fence vertices
-// (P1 = bottom-left, P5 = bottom-right) frame the 6:00 entrance; `towardMan`
-// seats a point a few metres inside the fence so the roads read as inside it.
-const M_PER_DEG_LAT = 111320
-function fenceVertex(i: number): { lat: number, lng: number } {
-  const [dlng, dlat] = FENCE_OFFSETS[i]!
-  return { lat: MAN.lat + dlat, lng: MAN.lng + dlng }
-}
-function towardMan(p: { lat: number, lng: number }, byM: number): { lat: number, lng: number } {
-  const mLng = M_PER_DEG_LAT * Math.cos((MAN.lat * Math.PI) / 180)
-  const E = (MAN.lng - p.lng) * mLng
-  const N = (MAN.lat - p.lat) * M_PER_DEG_LAT
-  const d = Math.hypot(E, N) || 1
-  return { lat: p.lat + (N / d) * byM / M_PER_DEG_LAT, lng: p.lng + (E / d) * byM / mLng }
 }
 
 export function cityGridGeoJson(): FeatureCollection {
@@ -224,54 +210,17 @@ export function cityGridGeoJson(): FeatureCollection {
   push('avenue', { type: 'LineString', coordinates: circleRing(MAN, MAN_R) })
 
   // 5. The 6:00 axis: an inner promenade from the Man to Center Camp, then the
-  // road resumes OUTSIDE Center Camp and runs out to the gate. The road rings
-  // Center Camp via Rod's Ring Road (the portal circle below) — it never cuts
-  // straight through the plaza.
+  // road resumes OUTSIDE Center Camp and runs out to Kundalini (K). The road
+  // rings Center Camp via Rod's Ring Road (the portal circle below) — it never
+  // cuts straight through the plaza.
   push('avenue', { type: 'LineString', coordinates: radial(6, MAN_R, CANOPY_M - CENTER_CAMP_R) })
-  push('gate-road', { type: 'LineString', coordinates: radial(6, CANOPY_M + CENTER_CAMP_R, 2350) })
-
-  // Lower entry/perimeter roads, matching the official plan's 6:00 entrance:
-  //  • two access roads from the outer street (K) at 5:00 & 7:00 down to the
-  //    bottom fence corners, and
-  //  • a perimeter road along the inside of the fence's bottom edge, broken at
-  //    the centre to leave the 6:00 gate opening (the gate-road runs through it).
-  const bl = towardMan(fenceVertex(0), 30) // bottom-left corner, inside the fence
-  const br = towardMan(fenceVertex(4), 30) // bottom-right corner
-  push('avenue', { type: 'LineString', coordinates: [toLngLat(radialPoint(7, kRadius + 12)), toLngLat(bl)] })
-  push('avenue', { type: 'LineString', coordinates: [toLngLat(radialPoint(5, kRadius + 12)), toLngLat(br)] })
-  // perimeter road with a centred gate gap
-  const mid = { lat: (bl.lat + br.lat) / 2, lng: (bl.lng + br.lng) / 2 }
-  const mLng = M_PER_DEG_LAT * Math.cos((MAN.lat * Math.PI) / 180)
-  const eE = (br.lng - bl.lng) * mLng
-  const eN = (br.lat - bl.lat) * M_PER_DEG_LAT
-  const eLen = Math.hypot(eE, eN) || 1
-  const GATE_HALF = 100 // metres of opening either side of the 6:00 axis
-  const gateL = { lat: mid.lat - (eN / eLen) * GATE_HALF / M_PER_DEG_LAT, lng: mid.lng - (eE / eLen) * GATE_HALF / mLng }
-  const gateR = { lat: mid.lat + (eN / eLen) * GATE_HALF / M_PER_DEG_LAT, lng: mid.lng + (eE / eLen) * GATE_HALF / mLng }
-  push('avenue', { type: 'LineString', coordinates: [toLngLat(bl), toLngLat(gateL)] })
-  push('avenue', { type: 'LineString', coordinates: [toLngLat(br), toLngLat(gateR)] })
-
-  // Gate throat: the two road edges neck in from the gate opening (±GATE_HALF)
-  // to a narrow throat (±THROAT_HALF) and run straight out past the fence,
-  // flanking the 6:00 gate-road centreline — the official plan's entrance shape.
-  const r6 = radialPoint(6, 1000)
-  const e6 = (r6.lng - MAN.lng) * mLng
-  const n6 = (r6.lat - MAN.lat) * M_PER_DEG_LAT
-  const rl6 = Math.hypot(e6, n6) || 1
-  const tanU: [number, number] = [-n6 / rl6, e6 / rl6] // tangential unit at 6:00
-  const gatePt = (dist: number, lat: number): { lat: number, lng: number } => {
-    const c = radialPoint(6, dist)
-    return { lat: c.lat + (tanU[1] * lat) / M_PER_DEG_LAT, lng: c.lng + (tanU[0] * lat) / mLng }
-  }
-  const THROAT_HALF = 22 // half-width of the necked throat (m)
-  for (const sgn of [-1, 1]) {
-    const open = sgn < 0 ? gateL : gateR // the gate opening end on the perimeter road
-    push('avenue', { type: 'LineString', coordinates: [
-      toLngLat(open),
-      toLngLat(gatePt(2120, sgn * THROAT_HALF)),
-      toLngLat(gatePt(2330, sgn * THROAT_HALF)),
-    ] })
-  }
+  // The 6:00 street resumes outside Center Camp and runs out to Kundalini (K),
+  // the outermost street, where it ends.
+  push('avenue', { type: 'LineString', coordinates: radial(6, CANOPY_M + CENTER_CAMP_R, kRadius) })
+  // Gate Road: the entrance road that comes IN from outside the perimeter (the
+  // trash fence sits at ~2,060 m on the 6:00 axis) and ends at Kundalini (K),
+  // where it becomes the 6:00 street. Matches the official plan's 6:00 entrance.
+  push('gate-road', { type: 'LineString', coordinates: radial(6, kRadius, 2470) }, { name: 'Gate Rd' })
 
   // Airport Road — branches off the 5:00 radial at the outer street and runs out
   // to the BRC Municipal Airport (88NV), south-east of the city beyond the fence.
