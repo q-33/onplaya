@@ -83,6 +83,17 @@ const { data: artData, refresh: refreshArt } = await useFetch('/api/art', { serv
 const pins = computed<CampPin[]>(() => toPins(campsData.value))
 const artPins = computed<CampPin[]>(() => toPins(artData.value))
 
+// Live Meshtastic peers (LoRa mesh) → map dots. Shared singleton state, also
+// driven by <MeshControl>; here we just plot the ones with a position fix.
+const { locatedPeers } = useMeshtastic()
+const meshPeers = computed(() => locatedPeers.value.map(n => ({
+  num: n.num,
+  lat: n.lat!,
+  lng: n.lng!,
+  label: n.shortName || n.longName || `!${n.num.toString(16)}`,
+  isSelf: n.isSelf,
+})))
+
 // --- admin: place/move any camp from the map (deep-linked from /admin) -------
 const adminPlaceSaved = ref(false)
 const adminPlaceCamp = computed(() => {
@@ -478,9 +489,14 @@ const itemOptions = computed(() => [
   <div class="relative size-full overflow-hidden">
     <div class="absolute inset-0">
       <ClientOnly>
-        <PlayaMap ref="mapRef" :camps="pins" :art-pins="artPins" :focus="focus" :gate-color="gateRoadColor" :layers="layers" :basemap="basemap" :drop-mode="!!dropMode || !!adminPlaceCamp" :sun-time="sunInstant" :wind="windLayer" :edit-camp="editCamp" class="size-full" @position="onPosition" @pick="onPick" @edit-change="onEditChange" />
+        <PlayaMap ref="mapRef" :camps="pins" :art-pins="artPins" :mesh-peers="meshPeers" :focus="focus" :gate-color="gateRoadColor" :layers="layers" :basemap="basemap" :drop-mode="!!dropMode || !!adminPlaceCamp" :sun-time="sunInstant" :wind="windLayer" :edit-camp="editCamp" class="size-full" @position="onPosition" @pick="onPick" @edit-change="onEditChange" />
       </ClientOnly>
     </div>
+
+    <!-- Meshtastic mesh radio: connect, see your people, chat off-grid -->
+    <ClientOnly>
+      <MeshControl />
+    </ClientOnly>
 
     <!-- floating top bar -->
     <div class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">

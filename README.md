@@ -51,6 +51,19 @@ mark your camp's location before you arrive and update it once you have service 
   delivered by email.
 - **Browse & search** camps and art (Postgres-native, no external index).
 
+### Offline & off-grid
+- **Installable, offline-first PWA** — add BurnerMap to your home screen; once you've
+  opened it online it caches the whole app, so the city map, labels, your GPS dot, the
+  address readout, and last-synced camps/art all work with **no signal on the playa**. The
+  map is tile-free and the fonts are self-hosted, so it has zero external runtime deps.
+- **Download for the playa** — a one-tap pre-sync (in the footer) that warms the caches
+  before you lose service, with a "ready for the playa ✓" status.
+- **Meshtastic mesh** — connect a [Meshtastic](https://meshtastic.org) LoRa radio over
+  **Bluetooth or USB** to see **your people live on the map** and **chat off-grid** with no
+  internet. Peers and messages persist across reloads (a "where I last saw my people"
+  view). Works in desktop/Android Chrome & Edge; on iPhone use the native Meshtastic app.
+  Setup lives in the in-app **Guide → Meshtastic**.
+
 ### Accounts & moderation
 - **Auth** — email/password sessions (`nuxt-auth-utils`) with self-service password reset.
 - **Roles** — `user` / `gpe` (Gate Road) / `tco` (theme-camp organizer) /
@@ -77,7 +90,9 @@ mark your camp's location before you arrive and update it once you have service 
 | | |
 |---|---|
 | Frontend | [Nuxt 4](https://nuxt.com) + [Nuxt UI](https://ui.nuxt.com) (Reka + Tailwind) |
-| Map | [MapLibre GL](https://maplibre.org) |
+| Map | [MapLibre GL](https://maplibre.org) — tile-free, self-hosted glyphs |
+| Offline | [@vite-pwa/nuxt](https://vite-pwa-org.netlify.app) — installable PWA, custom Workbox service worker |
+| Mesh | [Meshtastic](https://meshtastic.org) via `@meshtastic/core` (Web Bluetooth / Web Serial); mesh state in IndexedDB |
 | API / auth | Nitro server routes + [nuxt-auth-utils](https://github.com/atinux/nuxt-auth-utils) |
 | Data | [Drizzle ORM](https://orm.drizzle.team) → DigitalOcean **Postgres + PostGIS** |
 | Geocoder | `lib/brc` — parametric BRC address ⇄ lat/lng (pure TS, tested) |
