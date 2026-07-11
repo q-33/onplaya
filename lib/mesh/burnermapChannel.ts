@@ -18,11 +18,11 @@ export const BURNERMAP_PSK = new Uint8Array([
 
 export const BURNERMAP_CHANNEL = { name: 'BurnerMap', psk: BURNERMAP_PSK }
 
-// LoRa config baked into every BurnerMap share URL. Region/preset are enum names
-// resolved against the Meshtastic protobufs in channelSet.ts.
+// LoRa config baked into every BurnerMap share URL. Enum values are the raw
+// Meshtastic protobuf numbers (so the URL builder needs no SDK at runtime).
 export const BURNERMAP_LORA = {
-  region: 'US',
-  preset: 'LONG_FAST',
+  region: 1, // meshtastic Config_LoRaConfig_RegionCode.US
+  modemPreset: 0, // meshtastic Config_LoRaConfig_ModemPreset.LONG_FAST
   channelNum: 0, // 0 = derive the frequency slot from the channel (dodges the public default)
   hopLimit: 3,
   ignoreMqtt: true,

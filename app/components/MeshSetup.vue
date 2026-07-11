@@ -11,16 +11,22 @@ const crewPsk = ref<Uint8Array>(randomPsk())
 const url = ref('')
 const qr = ref('')
 const busy = ref(false)
+const err = ref('')
 const copied = ref(false)
 
 async function regen() {
   busy.value = true
+  err.value = ''
   try {
     const channel = mode.value === 'public'
       ? BURNERMAP_CHANNEL
       : { name: (crewName.value.trim() || 'Crew').slice(0, 11), psk: crewPsk.value }
-    url.value = await buildChannelUrl(channel)
+    url.value = buildChannelUrl(channel)
     qr.value = await QRCode.toDataURL(url.value, { margin: 1, width: 320, errorCorrectionLevel: 'M' })
+  }
+  catch (e) {
+    err.value = 'Could not generate the channel QR. Try reloading.'
+    console.error('[MeshSetup]', e)
   }
   finally {
     busy.value = false
@@ -86,6 +92,9 @@ async function copyUrl() {
     <div class="flex justify-center">
       <div class="rounded-2xl bg-white p-3 shadow-sm">
         <img v-if="qr" :src="qr" alt="Meshtastic channel QR" class="size-56" width="224" height="224">
+        <div v-else-if="err" class="flex size-56 items-center justify-center px-4 text-center text-xs text-red-600">
+          {{ err }}
+        </div>
         <div v-else class="flex size-56 items-center justify-center text-neutral-400">
           <UIcon name="i-lucide-loader-circle" class="size-6 animate-spin" />
         </div>
