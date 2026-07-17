@@ -19,7 +19,7 @@ async function submit() {
   }
 }
 
-useHead({ title: 'Reset password — BurnerMap' })
+useHead({ title: 'Reset password — BurnMap' })
 </script>
 
 <template>

@@ -81,7 +81,7 @@ async function sendMesh() {
   await sendText(t)
 }
 
-useHead({ title: 'Messages — BurnerMap' })
+useHead({ title: 'Messages — BurnMap' })
 </script>
 
 <template>
@@ -190,7 +190,7 @@ useHead({ title: 'Messages — BurnerMap' })
         </div>
       </div>
       <p class="mt-3 text-center text-xs text-(--ui-text-muted)">
-        New to the mesh? <NuxtLink to="/guide" class="text-primary underline">Join the BurnerMap mesh</NuxtLink> to get your radio on the same channel.
+        New to the mesh? <NuxtLink to="/guide" class="text-primary underline">Join the BurnMap mesh</NuxtLink> to get your radio on the same channel.
       </p>
     </ClientOnly>
 

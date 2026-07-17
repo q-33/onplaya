@@ -159,7 +159,7 @@ async function remove(id: string) {
   await refresh()
 }
 
-useHead({ title: 'Events — BurnerMap' })
+useHead({ title: 'Events — BurnMap' })
 </script>
 
 <template>

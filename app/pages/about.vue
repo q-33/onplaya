@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CITY_YEAR, STREET_NAMES } from '~~/lib/brc/geocode'
 
-useHead({ title: 'About — BurnerMap' })
+useHead({ title: 'About — BurnMap' })
 
 const streets = Object.entries(STREET_NAMES).filter(([k]) => k !== 'Esplanade')
 
@@ -21,7 +21,7 @@ const alumni = [
     <div class="mb-10">
       <UBadge color="primary" variant="subtle" class="mb-4">Black Rock City {{ CITY_YEAR }} · Unofficial</UBadge>
       <h1 class="font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">
-        About BurnerMap
+        About BurnMap
       </h1>
       <p class="mt-4 text-lg text-(--ui-text-muted)">
         A passion project by a small group of people who love Black Rock City — and maps.
@@ -30,7 +30,7 @@ const alumni = [
 
     <div class="space-y-4 text-(--ui-text-toned) leading-relaxed">
       <p>
-        First of all, BurnerMap would not be possible without <strong class="text-(--ui-text)">your participation</strong>.
+        First of all, BurnMap would not be possible without <strong class="text-(--ui-text)">your participation</strong>.
         We're merely the shell for all your shiny pearls of information — thank you to every gracious contributor!
       </p>
       <p>
@@ -89,7 +89,7 @@ const alumni = [
       <UButton to="mailto:feedback@unofficialbrcmap.com" icon="i-lucide-mail" color="neutral" variant="soft">
         Contact us
       </UButton>
-      <UButton to="https://github.com/q-33/burnermap" target="_blank" icon="i-lucide-github" color="neutral" variant="soft">
+      <UButton to="https://github.com/q-33/burnmap" target="_blank" icon="i-lucide-github" color="neutral" variant="soft">
         Contribute on GitHub
       </UButton>
       <UButton to="/" icon="i-lucide-map" color="primary">

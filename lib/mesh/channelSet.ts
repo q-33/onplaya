@@ -1,9 +1,9 @@
-import { BURNERMAP_LORA } from './burnermapChannel'
+import { BURNMAP_LORA } from './burnmapChannel'
 
 export interface MeshChannel { name: string, psk: Uint8Array }
 
 // Build a Meshtastic channel-set share URL (https://meshtastic.org/e/#…) for the
-// given PRIMARY channel + the BurnerMap LoRa preset. Scanning it in the Meshtastic
+// given PRIMARY channel + the BurnMap LoRa preset. Scanning it in the Meshtastic
 // app (or applying it to a connected radio) puts a stock device on the mesh.
 //
 // The ChannelSet protobuf is hand-encoded (wire format below) so this has ZERO
@@ -21,12 +21,12 @@ export function buildChannelUrl(channel: MeshChannel): string {
 
   const lora: number[] = []
   varintField(lora, 1, 1) // use_preset = true
-  varintField(lora, 2, BURNERMAP_LORA.modemPreset) // LONG_FAST (0) is the proto default → omitted
-  varintField(lora, 7, BURNERMAP_LORA.region)
-  varintField(lora, 8, BURNERMAP_LORA.hopLimit)
+  varintField(lora, 2, BURNMAP_LORA.modemPreset) // LONG_FAST (0) is the proto default → omitted
+  varintField(lora, 7, BURNMAP_LORA.region)
+  varintField(lora, 8, BURNMAP_LORA.hopLimit)
   varintField(lora, 9, 1) // tx_enabled = true
-  varintField(lora, 11, BURNERMAP_LORA.channelNum)
-  varintField(lora, 104, BURNERMAP_LORA.ignoreMqtt ? 1 : 0)
+  varintField(lora, 11, BURNMAP_LORA.channelNum)
+  varintField(lora, 104, BURNMAP_LORA.ignoreMqtt ? 1 : 0)
 
   const set: number[] = []
   bytesField(set, 1, settings)

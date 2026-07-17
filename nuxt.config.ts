@@ -37,8 +37,8 @@ export default defineNuxtConfig({
       maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
     },
     manifest: {
-      name: 'BurnerMap',
-      short_name: 'BurnerMap',
+      name: 'BurnMap',
+      short_name: 'BurnMap',
       description: 'Find your people on the playa. The Black Rock City map, offline-ready.',
       lang: 'en',
       theme_color: '#ece4d2',
@@ -67,7 +67,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'BurnerMap',
+      title: 'BurnMap',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'description', content: 'Find your people on the playa. Mark and discover camp locations on the Black Rock City map.' },
@@ -75,7 +75,7 @@ export default defineNuxtConfig({
         // iOS "Add to Home Screen" (iOS ignores the web manifest for installs)
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
-        { name: 'apple-mobile-web-app-title', content: 'BurnerMap' },
+        { name: 'apple-mobile-web-app-title', content: 'BurnMap' },
       ],
       link: [
         { rel: 'manifest', href: '/manifest.webmanifest' },

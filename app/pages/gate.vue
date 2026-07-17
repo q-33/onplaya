@@ -66,7 +66,7 @@ async function submit() {
   }
 }
 
-useHead({ title: 'Gate Road — BurnerMap' })
+useHead({ title: 'Gate Road — BurnMap' })
 </script>
 
 <template>

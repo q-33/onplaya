@@ -24,7 +24,7 @@ function currentLocation(a: Art): Loc | undefined {
   return [...a.locations].sort((x, y) => +new Date(y.createdAt) - +new Date(x.createdAt))[0]
 }
 
-useHead({ title: 'Art — BurnerMap' })
+useHead({ title: 'Art — BurnMap' })
 </script>
 
 <template>
