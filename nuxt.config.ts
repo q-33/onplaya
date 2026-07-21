@@ -83,6 +83,21 @@ export default defineNuxtConfig({
         { rel: 'manifest', href: '/manifest.webmanifest' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
       ],
+      script: [
+        // localStorage guard — runs before any app/vendor JS. In-app webviews
+        // (notably the Facebook browser, where links arrive with ?fbclid=…) can
+        // make even READING window.localStorage throw "Access is denied for this
+        // document". Unguarded, the first dependency to touch it (theme/color-
+        // mode restore, etc.) crashes hydration into a 500 page. If the native
+        // store throws, we shadow it with an in-memory shim so the app still
+        // runs (storage is best-effort; it just won't persist in that webview).
+        {
+          key: 'ls-guard',
+          tagPriority: 'critical',
+          tagPosition: 'head',
+          innerHTML: '(function(){try{window.localStorage.getItem("__lsprobe__")}catch(e){try{var m={},s={getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null}};Object.defineProperty(s,"length",{get:function(){return Object.keys(m).length}});Object.defineProperty(window,"localStorage",{configurable:true,value:s})}catch(e2){}}})();',
+        },
+      ],
     },
   },
   runtimeConfig: {

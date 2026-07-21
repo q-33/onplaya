@@ -3,6 +3,8 @@
 // fonts are precached by the service worker on install; this tops that up with the
 // home shell and the read-only data the map needs (camps, art, events, gate,
 // weather). Everything is fetched through the SW, which caches it per its routes.
+import { safeGetItem, safeSetItem } from '~~/lib/safeStorage'
+
 const LS_KEY = 'brcmap:lastSyncedAt'
 
 // Read-only public data the map/pages need offline.
@@ -19,7 +21,7 @@ export function useOfflineReady() {
 
   onMounted(() => {
     supported.value = typeof navigator !== 'undefined' && 'serviceWorker' in navigator
-    const v = localStorage.getItem(LS_KEY)
+    const v = safeGetItem(LS_KEY)
     lastSyncedAt.value = v ? Number(v) : null
   })
 
@@ -49,7 +51,7 @@ export function useOfflineReady() {
         }
       }))
       lastSyncedAt.value = Date.now()
-      localStorage.setItem(LS_KEY, String(lastSyncedAt.value))
+      safeSetItem(LS_KEY, String(lastSyncedAt.value))
     }
     catch (e: any) {
       error.value = e?.message ?? 'Download failed'
